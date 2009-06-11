@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 29 2009-05-19 13:47:38Z demetri $
+# $Id: 92_consistency.t 50 2009-06-10 19:31:06Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -12,6 +12,7 @@
 
 use 5.006;
 use strict;
+use warnings;
 use lib 't/lib';
 use Test::MyUtils;
 use File::Spec;
@@ -351,7 +352,7 @@ if ($manifest_open) {
     foreach my $file (@stale_copyright) {
         print "# copyright year != checkin year: $file\n";
     }
-    test !@stale_copyright, 'copyright dates match checkin dates';
+    test !@stale_copyright, 'copyright years match checkin dates';
     foreach my $file (@lacking_revision_id) {
         print "# file lacking revision ID: $file\n";
     }

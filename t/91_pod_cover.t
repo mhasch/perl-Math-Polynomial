@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 91_pod_cover.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 91_pod_cover.t 36 2009-06-08 11:51:03Z demetri $
 
 # Check for POD coverage.
 # This is a test for the distribution maintainer.
@@ -11,6 +11,7 @@
 # `make test'. After `make install' it should work as `perl t/91_pod_cover.t'
 
 use strict;
+use warnings;
 use lib 't/lib';
 use Test::MyUtils;
 

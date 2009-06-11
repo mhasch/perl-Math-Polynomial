@@ -4,9 +4,9 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: migration.pl 12 2009-05-14 07:34:36Z demetri $
+# $Id: migration.pl 56 2009-06-10 20:57:24Z demetri $
 
-# Math::Polynomial usage example: Migration from version 0.04 to 1.000
+# Math::Polynomial usage example: Migration from version 0.04 to 1.002
 #
 # Math::Polynomial version 1.000 broke backwards compatibility with
 # earlier versions.  This example demonstrates how legacy code using
@@ -21,7 +21,7 @@ use strict;
 use warnings;
 
 # use Math::Polynomial;
-use Math::Polynomial 1.000;
+use Math::Polynomial 1.002;
 
 # my $p = Math::Polynomial->new(1, 3, -2);
 my $p = Math::Polynomial->new(-2, 3, 1);
@@ -53,6 +53,17 @@ print "q is $q, r is $r\n";
 my $s = $q - $r;
 
 print "s is $s\n";
+
+# my $qq = $q->clone;
+# $qq->mul1c(2);
+my $qq = $q->mul_root(2);
+
+print "qq is $qq\n";
+
+# $qq->div1c(2);
+$qq = $qq->div_root(2);
+
+print "qq is now $qq\n";
 
 # Math::Polynomial->verbose(1);
 Math::Polynomial->string_config({

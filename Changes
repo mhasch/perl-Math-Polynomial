@@ -1,5 +1,18 @@
 Revision history for Perl extension Math::Polynomial.
 
+                    Math::Polynomial Version 1.002
+                    ------------------------------
+
+- Release date: 2009-06-11
+
+- Improved interpolation polynomial calculation by one order of
+  magnitude (O(n**3) => O(n**2)).
+
+- Added optimization for monic denominators to div / mod / divmod.
+
+- Added from_roots constructor and mul_root / div_root / divmod_root
+  methods suggested by Kevin Ryde [rt.cpan.org #46427].
+
                     Math::Polynomial Version 1.001
                     ------------------------------
 

@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 99_signature.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 99_signature.t 36 2009-06-08 11:51:03Z demetri $
 
 # Verify signature file.  This is a test for the distribution maintainer.
 
@@ -10,6 +10,7 @@
 # `make test'. After `make install' it should work as `perl t/99_signature.t'
 
 use strict;
+use warnings;
 use lib 't/lib';
 use Test::MyUtils;
 

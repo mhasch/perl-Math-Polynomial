@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 03_expressions.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 03_expressions.t 39 2009-06-08 21:21:57Z demetri $
 
 # Checking arithmetic operators and expressions.
 
@@ -12,8 +12,9 @@
 #########################
 
 use strict;
+use warnings;
 use Test;
-BEGIN { plan tests => 198 };
+BEGIN { plan tests => 202 };
 use Math::Polynomial 1.000;
 ok(1);  # module loaded
 
@@ -425,13 +426,25 @@ $bool = $zp->is_monic;
 ok(defined $bool);                      # is_monic defined for zp
 ok(!$bool);                             # zp is not monic
 
-# mutators
+# assignment operators
 
 $pp = Math::Polynomial->new(1, 10);
 $qq = $pp;
 $pp += $pp;
-ok(has_coeff($pp, 2, 20));               # += working
-ok(has_coeff($qq, 1, 10));               # += no side effects
+ok(has_coeff($pp, 2, 20));              # += working
+ok(has_coeff($qq, 1, 10));              # += no side effects
+
+$pp = $p && $q;
+ok($pp == $q);                          # && operator long path
+
+$pp = $zp && $q;
+ok($pp == $zp);                         # && operator short path
+
+$pp = $p || $q;
+ok($pp == $p);                          # || operator short path
+
+$pp = $zp || $q;
+ok($pp == $q);                          # || operator long path
 
 # diagnostics
 

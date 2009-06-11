@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Makefile.PL 23 2009-05-19 12:23:01Z demetri $
+# $Id: Makefile.PL 43 2009-06-08 21:48:46Z demetri $
 
 use strict;
 use ExtUtils::MakeMaker;
@@ -12,6 +12,7 @@ WriteMakefile(
     VERSION_FROM   => 'lib/Math/Polynomial.pm',
     PREREQ_PM      => {
         overload   => 0,
+        Carp       => 0,
     },
     ABSTRACT_FROM  => 'lib/Math/Polynomial.pm',
     AUTHOR         => 'Martin Becker <becker-cpan-mp@cozap.com>',

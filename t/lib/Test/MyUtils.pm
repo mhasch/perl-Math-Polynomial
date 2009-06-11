@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: MyUtils.pm 8 2009-05-12 14:03:18Z demetri $
+# $Id: MyUtils.pm 52 2009-06-10 20:48:52Z demetri $
 
 # Utility functions for tests:
 # * conditionally skip tests if required modules are not available
@@ -14,11 +14,12 @@ package Test::MyUtils;
 
 use 5.006;
 use strict;
+use warnings;
 use File::Basename qw(dirname);
 use Config;
 use base 'Exporter';
 
-our $VERSION   = '0.003';
+our $VERSION   = '0.004';
 our @EXPORT    = qw(use_or_bail maintainer_only);
 our @EXPORT_OK = qw(slurp_or_bail this_perl);
 
@@ -82,21 +83,24 @@ sub slurp_or_bail {
     my $fh;
     my $result;
     my $err;
-    if (! -f $filename) {
+    if (!-e $filename) {
+        $err = 'file does not exist';
+    }
+    elsif (!-f _) {
         $err = 'not a plain file';
     }
     elsif ($MAX_FILESIZE < -s _) {
-        $err = 'file is too large';
+        $err = 'file too large';
     }
     elsif (open $fh, '<', $filename) {
-        defined($result = <$fh>) or $err = $!;
+        defined($result = <$fh>) or $err = "cannot read: $!";
         close $fh;
     }
     else {
-        $err = $!;
+        $err = "cannot open: $!";
     }
     if (!defined $result) {
-        _skip_all("$filename: cannot slurp: $err");
+        _skip_all("$filename: $err");
     }
     return $result;
 }

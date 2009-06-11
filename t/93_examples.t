@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 93_examples.t 4 2009-05-10 22:14:58Z demetri $
+# $Id: 93_examples.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking whether all scripts in the examples directory run fine.
 # These are tests for the distribution maintainer, mostly.
@@ -15,6 +15,7 @@
 
 use 5.006;
 use strict;
+use warnings;
 use Test;
 use File::Spec;
 use lib "t/lib";

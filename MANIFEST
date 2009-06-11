@@ -17,6 +17,7 @@ t/05_euclid.t
 t/06_calculus.t
 t/07_strings.t
 t/08_generic.t
+t/09_linear_terms.t
 t/10_math_complex.t
 t/11_math_bigrat.t
 t/12_gf3.t
@@ -25,5 +26,6 @@ t/91_pod_cover.t
 t/92_consistency.t
 t/93_examples.t
 t/94_diag_cover.t
+t/95_versions.t
 t/99_signature.t
 t/lib/Test/MyUtils.pm

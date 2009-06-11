@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 01_load.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 01_load.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking whether Math::Polynomial 1.000 can be loaded at all.
 
@@ -12,6 +12,7 @@
 #########################
 
 use strict;
+use warnings;
 use Test;
 BEGIN { plan tests => 1 };
 use Math::Polynomial 1.000;

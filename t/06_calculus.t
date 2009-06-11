@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 06_calculus.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 06_calculus.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking calculus operators.
 
@@ -12,6 +12,7 @@
 #########################
 
 use strict;
+use warnings;
 use Test;
 BEGIN { plan tests => 5 };
 use Math::Polynomial 1.000;

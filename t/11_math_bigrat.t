@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 11_math_bigrat.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 11_math_bigrat.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking coefficient space compatibility with Math::BigRat.
 
@@ -12,6 +12,7 @@
 #########################
 
 use strict;
+use warnings;
 use Test;
 use lib 't/lib';
 use Test::MyUtils;

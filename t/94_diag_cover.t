@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 94_diag_cover.t 9 2009-05-12 14:09:49Z demetri $
+# $Id: 94_diag_cover.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking whether all error messages are covered in the DIAGNOSTICS
 # pod section.
@@ -12,6 +12,7 @@
 
 use 5.006;
 use strict;
+use warnings;
 use Test;
 use lib "t/lib";
 use Test::MyUtils;

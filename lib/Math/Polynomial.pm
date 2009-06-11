@@ -2,12 +2,13 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 33 2009-05-19 22:33:18Z demetri $
+# $Id: Polynomial.pm 60 2009-06-11 21:51:47Z demetri $
 
 package Math::Polynomial;
 
 use 5.006;
 use strict;
+use warnings;
 use Carp qw(croak);
 
 require overload;
@@ -43,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION     = '1.001';
+our $VERSION     = '1.002';
 our $max_degree  = 10_000;      # limit for power operator
 
 # default values for as_string options
@@ -137,21 +138,21 @@ sub _check_int {
 sub new {
     my ($this, @coeff) = @_;
     my $class = ref $this;
-    my ($zero, $one, @more);
+    my ($zero, $one, $config);
     if ($class) {
-        (undef, $zero, $one, @more) = @{$this};
+        (undef, $zero, $one, $config) = @{$this};
     }
     else {
         my $sample = @coeff? $coeff[-1]: 1;
         $zero   = $sample - $sample;
         $one    = $sample ** 0;
-        @more   = (undef);
+        $config = undef;
         $class  = $this;
     }
     while (@coeff && $zero == $coeff[-1]) {
         pop @coeff;
     }
-    return bless [\@coeff, $zero, $one, @more], $class;
+    return bless [\@coeff, $zero, $one, $config], $class;
 }
 
 sub clone {
@@ -178,6 +179,16 @@ sub monomial {
         $zero  = $coeff - $coeff;
     }
     return $this->new(($zero) x $degree, $coeff);
+}
+
+sub from_roots {
+    my ($this, @roots) = @_;
+    my $one = ref($this)? $this->coeff_one: @roots? $roots[-1] ** 0: 1;
+    my $result = $this->new($one);
+    foreach my $root (@roots) {
+        $result = $result->mul_root($root);
+    }
+    return $result;
 }
 
 sub string_config {
@@ -211,27 +222,18 @@ sub interpolate {
         croak 'usage: $q = $p->interpolate([$x1, $x2, ...], [$y1, $y2, ...])';
     }
     return $this->new if !@{$xvalues};
-    if (!ref $this) {
-        $this = $this->new( $xvalues->[-1] );
-    }
-    my $result = undef;
-    my $one = $this->coeff_one;
-    my @delta = map { $this->new(-$_, $one) } @{$xvalues};
-    foreach my $i (0..$#{$xvalues}) {
-        my ($x, $y) = ($xvalues->[$i], $yvalues->[$i]);
-        my $term = undef;
-        foreach my $ii (0..$#{$xvalues}) {
-            if ($i != $ii) {
-                my $xx = $xvalues->[$ii];
-                croak 'x values not disjoint' if $x == $xx;
-                $term = defined($term)? $term->mul($delta[$ii]): $delta[$ii];
-            }
+    my @alpha  = @{$yvalues};
+    my $result = $this->new($alpha[0]);
+    my $aux    = $result->monomial(0);
+    my $zero   = $result->coeff_zero;
+    for (my $k=1; $k<=$#alpha; ++$k) {
+        for (my $j=$#alpha; $j>=$k; --$j) {
+            my $dx = $xvalues->[$j] - $xvalues->[$j-$k];
+            croak 'x values not disjoint' if $zero == $dx;
+            $alpha[$j] = ($alpha[$j] - $alpha[$j-1]) / $dx;
         }
-        $term =
-            defined($term)?
-                $term->mul_const($y / $term->evaluate($x)):
-                $this->new($y);
-        $result = $i? $result->add($term): $term;
+        $aux = $aux->mul_root($xvalues->[$k-1]);
+        $result += $aux->mul_const($alpha[$k]);
     }
     return $result;
 }
@@ -364,28 +366,49 @@ sub mul {
     );
 }
 
-sub divmod {
+sub _divmod {
     my ($this, $that) = @_;
-    croak 'array context required' if !wantarray;
     my @den  = $that->coeff;
     @den or croak 'division by zero polynomial';
     my $hd   = pop @den;
+    if ($that->is_monic) {
+        undef $hd;
+    }
     my @rem  = $this->coeff;
     my @quot = ();
     my $i    = $#rem - @den;
     while (0 <= $i) {
-        my $q = $quot[$i] = pop(@rem) / $hd;
+        my $q = pop(@rem);
+        if (defined $hd) {
+            $q /= $hd;
+        }
+        $quot[$i] = $q;
         my $j = $i--;
         foreach my $d (@den) {
             $rem[$j++] -= $q * $d;
         }
     }
-    return ($this->new, $this) if !@quot;
-    return ($this->new(@quot), $this->new(@rem));
+    return (\@quot, \@rem);
 }
 
-sub div { return ((shift)->divmod(@_))[0]; }
-sub mod { return ((shift)->divmod(@_))[1]; }
+sub divmod {
+    my ($this, $that) = @_;
+    croak 'array context required' if !wantarray;
+    my ($quot, $rem) = _divmod($this, $that);
+    return ($this->new(@{$quot}), @{$quot}? $this->new(@{$rem}): $this);
+}
+
+sub div {
+    my ($this, $that) = @_;
+    my ($quot) = _divmod($this, $that);
+    return $this->new(@{$quot});
+}
+
+sub mod {
+    my ($this, $that) = @_;
+    my ($quot, $rem) = _divmod($this, $that);
+    return @{$quot}? $this->new(@{$rem}): $this;
+}
 
 sub mmod {
     my ($this, $that) = @_;
@@ -431,6 +454,39 @@ sub div_const {
     my ($this, $divisor) = @_;
     croak 'division by zero' if $this->coeff_zero == $divisor;
     return $this->new( map { $_ / $divisor } $this->coeff );
+}
+
+sub mul_root {
+    my ($this, $root) = @_;
+    return $this->shift_up(1)->sub_($this->mul_const($root));
+}
+
+sub _divmod_root {
+    my ($this, $root) = @_;
+    my $i   = $this->degree;
+    my $rem = $this->coeff($i < 0? 0: $i);
+    my @quot;
+    while (0 <= --$i) {
+        $quot[$i] = $rem;
+        $rem = $root * $rem + $this->coeff($i);
+    }
+    return (\@quot, $rem);
+}
+
+sub divmod_root {
+    my ($this, $root) = @_;
+    croak 'array context required' if !wantarray;
+    my ($quot, $rem) = _divmod_root($this, $root);
+    return ($this->new(@{$quot}), $this->new($rem));
+}
+
+sub div_root {
+    my ($this, $root, $check) = @_;
+    my ($quot, $rem) = _divmod_root($this, $root);
+    if ($check && $this->coeff_zero != $rem) {
+        croak 'non-zero remainder';
+    }
+    return $this->new(@{$quot});
 }
 
 sub is_monic {
@@ -645,7 +701,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.000 of Math::Polynomial.
+This documentation refers to version 1.002 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -674,6 +730,9 @@ This documentation refers to version 1.000 of Math::Polynomial.
 
   $w = $p->interpolate([0..2], [-1, 0, 3]);   # w(0) = -1, w(1) = 0,
                                               # w(2) = 3
+
+  use Math::Complex;
+  $p = Math::Polynomial->new(i, 1+i);         # p(x) = (1+i)*x + i
 
 =head1 DESCRIPTION
 
@@ -712,7 +771,7 @@ multiplied by each other.
 
 Note that ordinary Perl numbers used as coefficients have the disadvantage
 that rounding errors may lead to undesired effects, such as unexpectedly
-nonzero division remainders or mysteriously failing equality checks.
+non-zero division remainders or failing equality checks.
 
 =head1 CLASS VARIABLES
 
@@ -775,22 +834,32 @@ must be at most C<$Math::Polynomial::max_degree>.
 =item I<interpolate([$x1, $x2, ...], [$y1, $y2, ...])>
 
 C<Math::Polynomial-E<gt>interpolate(\@x_values, \@y_values)> creates
-a Lagrange interpolation polynomial passing through support points
-with the given x- and y-coordinates.  The x-values must be mutually
-distinct.  The number of y-values must be equal to the number of
-x-values.  For I<n> support points this takes I<O(n**3)> multiplications,
-I<O(n**3)> additions, I<O(n)> divisions and I<O(n**2)> comparisons
-in the coefficient space.  The result will be a polynomial of degree
-I<n-1>.
+a Newton/Lagrange interpolation polynomial passing through support
+points with the given x- and y-coordinates.  The x-values must be
+mutually distinct.  The number of y-values must be equal to the
+number of x-values.  For I<n> support points this takes I<O(n**2)>
+additions, subtractions, multiplications, divisions and comparisons
+each in the coefficient space.  The result will be a polynomial of
+degree I<n-1> at most.
 
-Note that with increasing numbers of support points, Lagrange
-interpolation tends to get inaccurate if carried out with limited
-numerical precision.  Furthermore, high-degree interpolation
-polynomials can oscillate wildly in the neighbourhood of the support
-points, let alone elswhere, unless the support point x-values are
-carefully chosen.  This is due to the nature of these functions and
-not a fault of the module.  A script demonstrating this phenomenon
-can be found in the Math-Polynomial examples directory.
+Note that with increasing numbers of support points, interpolation
+tends to get inaccurate if carried out with limited numerical
+precision.  Furthermore, high-degree interpolation polynomials can
+oscillate wildly in the neighbourhood of the support points, let
+alone elswhere, unless the support point x-values are carefully
+chosen.  This is due to the nature of these functions and not a
+fault of the module.  A script demonstrating this phenomenon can
+be found in the Math-Polynomial examples directory.
+
+=item I<from_roots($x1, $x2, ...)>
+
+C<Math::Polynomial-E<gt>from_roots(@x_values)> creates the monic
+polynomial with the given set of roots, i.e. for x-values
+I<x1, x2, ..., xn> the product I<(x-x1)*(x-x2)*...*(x-xn)>.  This
+is a Polynomial of degree I<n> if I<n> roots are given.  The x-values
+can be given in any order and do not need to be distinct.  For I<n>
+roots this takes I<O(n*n)> multiplications and subtractions in the
+coefficient space.
 
 =back
 
@@ -835,11 +904,20 @@ must be at most C<$Math::Polynomial::max_degree>.
 =item I<interpolate([$x1, $x2, ...], [$y1, $y2, ...])>
 
 C<$p-E<gt>interpolate(\@x_values, \@y_values)> is the object method
-usage of the Lagrange interpolation polynomial constructor.  It creates
-a polynomial passing through support points with the given x- and
-y-coordinates.  The x-values must be mutually distinct.  The number
-of y-values must be equal to the number of x-values.  All values must
-belong to the coefficient space of C<$p>.
+usage of the Newton/Lagrange interpolation polynomial constructor
+(see above).  It creates a polynomial passing through support points
+with the given x- and y-coordinates.  The x-values must be mutually
+distinct.  The number of y-values must be equal to the number of
+x-values.  All values must belong to the coefficient space of C<$p>.
+
+=item I<from_roots($x1, $x2, ...)>
+
+If C<$p> refers to a Math::Polynomial object, the object method
+C<$p-E<gt>from_roots(@x_values)> creates the monic polynomial with
+the given set of roots, i.e. for x-values I<x1, x2, ..., xn> the
+product I<(x-x1)*(x-x2)*...*(x-xn)>, sharing inheritable properties
+with C<$p>.  For I<n> roots this takes I<O(n*n)> multiplications
+and subtractions in the coefficient space.
 
 =item I<clone>
 
@@ -934,13 +1012,15 @@ need to be ordered spaces.
 
 =item I<is_zero>
 
-C<$p-E<gt>is_zero> or short C<!$p> checks whether C<$p> is a zero polynomial.
+C<$p-E<gt>is_zero> or short C<!$p> or C<not $p> checks whether C<$p>
+is a zero polynomial.
 
 =item I<is_nonzero>
 
 C<$p-E<gt>is_nonzero> checks whether C<$p> is not a zero polynomial.
 This method may be implicitly called if an object is used in boolean
-context such as the condition of a while loop.
+context such as the condition of a while loop or in an expression
+with boolean operators such as C<&&> or C<||>.
 
 =item C<==>
 
@@ -1124,14 +1204,88 @@ C<$n> coefficients.   However, it is more efficient than division
 and modulo as it does not perform any operations in the coefficient
 space.  The indexes C<$m> and C<$n> must be non-negative integers.
 
+=item I<mul_root>
+
+C<$p-E<gt>mul_root($c)> calculates the product of a polynomial I<p>
+and the linear term I<(x - c)>.  The result is a polynomial that
+evaluates to zero at the given root I<c>.  For polynomials of degree
+I<n>, this takes I<n+1> multiplications and I<n+1> subtractions.
+
+=item I<div_root>
+
+C<$p-E<gt>div_root($c, $check)> with a true value C<$check> checks
+whether a polynomial I<p> has a linear factor I<(x - c)> and divides
+it by that factor.  If I<c> is not actually a root of the polynomial,
+i.e. the division yields a non-zero remainder, an error is reported.
+For polynomials of degree I<n>, this takes I<n> multiplications and I<n>
+additions.
+
+With a false value for C<$check> or without a second argument, as in
+C<$p-E<gt>div_root($c)>, divisibility will not be checked.  The remainder
+will simply be discarded.  This may be useful for factoring out a known
+root while working under limited precision.
+
+=item I<divmod_root>
+
+C<($q, $r) = $p-E<gt>divmod_root($c)> divides a polynomial I<p>
+by a linear factor I<(x - c)> and returns the result and remainder.
+The remainder will be a zero polynomial if I<c> is a root of I<p>,
+otherwise a constant polynomial.  For polynomials of degree I<n>, this
+takes I<n> multiplications and I<n> additions.
+
+This method must be called in array context.
+
+Note that there is no need for a I<mod_root> method, as that would
+be indistinguishable from I<evaluate>.
+
 =item I<monize>
 
-C<$p-E<gt>monize> converts an arbitrary nonzero polynomial to a
+C<$p-E<gt>monize> converts an arbitrary non-zero polynomial to a
 monic polynomial via division by its highest-order coefficient.
 The result will be monic, i.e. with a highest-order coefficient of
 one, if the invocant was not the zero polynomial, otherwise the
-zero polynomial.  Monization of a nonzero polynomial of degree I<n>
+zero polynomial.  Monization of a non-zero polynomial of degree I<n>
 takes I<n> divisions in the coefficient space.
+
+=back
+
+=head2 Assignment Operators
+
+=over 4
+
+=item C<=>
+
+=item C<+=>
+
+=item C<-=>
+
+=item C<*=>
+
+=item C</=>
+
+=item C<%=>
+
+=item C<**=>
+
+=item C<E<lt>E<lt>=>
+
+=item C<E<gt>E<gt>=>
+
+=item C<&&=>
+
+=item C<||=>
+
+As Math::Polynomial objects are immutable with respect to their
+arithmetic properties, assignment operators like C<=>, C<+=>, C<-=>,
+C<*=> etc. will always replace the object that is being assigned
+to, rather than mutate it.  Thus polynomial objects can safely be
+"modified" using assignment operators, without side effects on other
+variables referencing the same objects.
+
+Note that the short-circuit behaviour of C<&&> and C<||>, which
+return the last expression evaluated, implies that C<&&=> and C<||=>
+conditionally replace a polynomial by a given expression (another
+polynomial, say), not just a boolean value.
 
 =back
 
@@ -1391,6 +1545,7 @@ parenthesis.
   $p  = Math::Polynomial->new(0, -3, 0, 2);    # (2*x**3 - 3*x)
   $zp = Math::Polynomial->new(0);              # the zero polynomial
   $q  = Math::Polynomial->monomial(3, 2);      # (2*x**3)
+  $q  = Math::Polynomial->from_roots(5, 6, 7); # (x-5)*(x-6)*(x-7)
 
   # Lagrange interpolation:
   $q = Math::Polynomial->interpolate([0..3], [0, -1, 10, 45]);
@@ -1402,6 +1557,7 @@ parenthesis.
   $q = $p->monomial(3, 2);                     # (2*x**3)
   $q = $p->monomial(3);                        # (x**3)
   $q = $p->interpolate([0..3], [0, -1, 10, 45]); # (2*x**3 - 3*x)
+  $q = $p->from_roots(5, 6, 7);                # (x-5)*(x-6)*(x-7)
   $q = $p->clone;                              # q == p
 
   # properties
@@ -1431,6 +1587,9 @@ parenthesis.
   $bool = $p == $q;    $bool = $p->is_equal($q);      # equality
   $bool = $p != $q;    $bool = $p->is_unequal($q);    # inequality
 
+  $p = $q && $r;       $p = $q->is_zero? $q: $r;      # choice
+  $p = $q || $r;       $p = $q->is_zero? $r: $q;      # choice
+
   # arithmetic
   $q = -$p;            $q = $p->neg;           # q(x) == -p(x)
   $q = $p1 + $p2;      $q = $p1->add($p2);     # q(x) == p1(x) + p2(x)
@@ -1456,6 +1615,18 @@ parenthesis.
 
   ($q, $r) = $p1->divmod($p2);                 # p1 == q * p2 + r,
                                                #   deg r < deg p2
+
+  $q = $p->mul_root(7);                        # q = p * (x-7)
+
+  $q = $p->div_root(7);                        # p = q * (x-7) + c,
+                                               #   c is some constant
+
+  $q = $p->div_root(7, 1);                     # p = q * (x-7)
+                                               #   if such q exists,
+                                               #   otherwise bang!
+
+  ($q, $r) = $p->divmod_root(7);               # p = q * (x-7) + r,
+                                               #   deg r < 1
 
   $r = $p1->mmod($p2);                         # c * p1 == q * p2 + r,
                                                #   deg r < deg p2,
@@ -1542,6 +1713,13 @@ parenthesis.
     plus          => q{, },
   };
   $str = $p->as_string($config);               # '(0, -3, 0, 2)'
+
+  # other customizations
+
+  $q = do {
+    local Math::Polynomial::max_degree;        # override limitation
+    $p->monomial(100_000)                      # x^100000
+  };
 
   # examples of other coefficient spaces
 
@@ -1636,6 +1814,12 @@ One of the methods expecting non-negative integer arguments, like
 I<pow>, I<pow_mod>, I<shift_up>, I<shift_down>, I<slice> or
 I<monomial>, got something else instead.
 
+=item non-zero remainder
+
+The I<div_root> method was called with a first argument that was not
+actually a root of the polynomial and a true value as second argument,
+forcing a check for divisibility.
+
 =item usage: %s
 
 A method designed to be called in a certain manner with certain types
@@ -1673,14 +1857,16 @@ Other modules may implement algorithms employing polynomials (such
 as approximation techniques) or analyzing them (such as root-finding
 techniques).
 
-The set of attributes that will be propagated from operands to
-expression results is designed to be extensible, too.  More detailed
-information as well as a couple of examples are supposed to be added
-in an upcoming release.
+Yet another set of modules may provide alternative implementations
+optimized for special cases such as sparse polynomials, or taking
+benefit from specialized external math libraries.
 
 Multivariate polynomials, finally, will presumably live in a class
 that is neither a base class nor a subclass of Math::Polynomial,
 as both subjects do not have enough in common to suggest otherwise.
+
+More detailed information as well as a couple of examples are
+supposed to be added in an upcoming release.
 
 =head1 DEPENDENCIES
 
@@ -1696,6 +1882,10 @@ perl version 5.6.0 or higher
 =item *
 
 overload (usually bundled with perl)
+
+=item *
+
+Carp (usually bundled with perl)
 
 =back
 
@@ -1770,9 +1960,15 @@ coating Math::Polynomial.
 
 =back
 
-Modules planned for release:
+Modules planned for release, in various states of completion:
 
 =over 4
+
+=item *
+
+I<Math::Polynomial::Sparse> -
+an alternative implementation optimized for polynomials with lots
+of zero coefficients.
 
 =item *
 
@@ -1798,6 +1994,27 @@ an extension providing methods to create polynomial objects from strings.
 
 =back
 
+Other Modules:
+
+=over 4
+
+=item *
+
+I<PDL> -
+the Perl Data Language.
+
+=item *
+
+Math::GMP -
+Interface to the GMP arbitrary precision integer math library.
+
+=item *
+
+Math::Pari -
+Interface to the Pari math library.
+
+=back
+
 General Information:
 
 =over 4
@@ -1813,6 +2030,11 @@ Weisstein, Eric W. "Polynomial."
 From MathWorld--A Wolfram Web Resource.
 L<http://mathworld.wolfram.com/Polynomial.html>
 
+=item *
+
+Knuth, Donald E. "The Art of Computer Programming, Volume 2:
+Seminumerical Algorithms", 3rd ed., 1998, Addison-Wesley Professional.
+
 =back
 
 =head1 AUTHOR
@@ -1821,7 +2043,7 @@ Martin Becker, E<lt>becker-cpan-mp@cozap.comE<gt>
 
 =head1 ACKNOWLEDGEMENTS
 
-This module was inspired by a module of the same name written and
+Math::Polynomial was inspired by a module of the same name written and
 maintained by Mats Kindahl, E<lt>mats@kindahl.netE<gt>, 1997-2007,
 who kindly passed it on to the author for maintenance and improvement.
 
@@ -1838,7 +2060,7 @@ at your option, any later version of Perl 5 you may have available.
 
 =head1 DISCLAIMER OF WARRANTY
 
-This module is distributed in the hope that it will be useful,
+This library is distributed in the hope that it will be useful,
 but without any warranty; without even the implied warranty of
 merchantability or fitness for a particular purpose.
 

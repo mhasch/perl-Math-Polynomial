@@ -2,12 +2,13 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Generic.pm 6 2009-05-10 23:50:09Z demetri $
+# $Id: Generic.pm 60 2009-06-11 21:51:47Z demetri $
 
 package Math::Polynomial::Generic;
 
 use 5.006;
 use strict;
+use warnings;
 use Carp qw(croak);
 use Math::Polynomial 1.000;
 
@@ -17,7 +18,7 @@ use base qw(Math::Polynomial Exporter);
 
 our @EXPORT_OK = qw( X C );
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 
 my $x_singleton = Math::Polynomial::Generic->new(0, 1);
 
@@ -57,6 +58,9 @@ sub divmod {
     croak 'implementation restriction: generic division not defined';
 }
 
+sub div { goto &divmod; }
+sub mod { goto &divmod; }
+
 1;
 __END__
 
@@ -66,7 +70,7 @@ Math::Polynomial::Generic - syntactical sugar coating Math::Polynomial
 
 =head1 VERSION
 
-This documentation refers to version 0.001 of Math::Polynomial::Generic.
+This documentation refers to version 0.002 of Math::Polynomial::Generic.
 As of this version, the interface is still experimental and should
 not be relied upon in production code.
 
@@ -157,9 +161,13 @@ polynomial object, add a C<C()>-wrapped zero value.
 
 =item I<divmod>
 
-Currently, division of generic objects by generic objects (like
-C<X/X>) is not implemented.  An overriden I<divmod> method guards
-against such cases.
+=item I<div>
+
+=item I<mod>
+
+Currently, division of generic objects by generic objects (like C<X/X>) is
+not implemented.  The methods I<divmod>, I<div> and I<mod> are overriden
+to guard against such cases.
 
 =back
 

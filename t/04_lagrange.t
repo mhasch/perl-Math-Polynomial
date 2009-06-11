@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 04_lagrange.t 30 2009-05-19 13:48:07Z demetri $
+# $Id: 04_lagrange.t 36 2009-06-08 11:51:03Z demetri $
 
 # Checking Lagrange interpolation.
 
@@ -12,6 +12,7 @@
 #########################
 
 use strict;
+use warnings;
 use Test;
 BEGIN { plan tests => 15 };
 use Math::Polynomial 1.000;
@@ -22,14 +23,14 @@ ok(1);  # module loaded
 sub has_coeff {
     my $p = shift;
     if (!ref($p) || !$p->isa('Math::Polynomial')) {
-        warn
+        print
             '# expected Math::Polynomial object, got ',
             ref($p)? ref($p): defined($p)? qq{"$p"}: 'undef', "\n";
         return 0;
     }
     my @coeff = $p->coeff;
     if (@coeff != @_ || grep {$coeff[$_] != $_[$_]} 0..$#coeff) {
-        warn
+        print
             '# expected coefficients (',
             join(', ', @_), '), got (', join(', ', @coeff), ")\n";
         return 0;
