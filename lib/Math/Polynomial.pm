@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 by Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2010 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 60 2009-06-11 21:51:47Z demetri $
+# $Id: Polynomial.pm 91 2010-09-06 09:57:35Z demetri $
 
 package Math::Polynomial;
 
@@ -44,8 +44,8 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION     = '1.002';
-our $max_degree  = 10_000;      # limit for power operator
+our $VERSION      = '1.003';
+our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
 my @string_defaults = (
@@ -57,6 +57,7 @@ my @string_defaults = (
     fold_exp_zero => 1,
     fold_exp_one  => 1,
     convert_coeff => sub { "$_[0]" },
+    sign_of_coeff => undef,
     plus          => q{ + },
     minus         => q{ - },
     leading_plus  => q{},
@@ -69,6 +70,25 @@ my @string_defaults = (
 );
 
 my $global_string_config = {};
+
+my @tree_defaults = (
+    fold_sign     => 0,
+    expand_power  => 0,
+    group         => sub { $_[0] },
+    sign_of_coeff => undef,
+    map {
+        my $key = $_;
+        ($key => sub { croak "missing parameter: $key" })
+    } qw(
+        variable
+        constant
+        negation
+        sum
+        difference
+        product
+        power
+    ),
+);
 
 # ----- private/protected subroutines -----
 
@@ -279,10 +299,9 @@ sub evaluate {
 sub nest {
     my ($this, $that) = @_;
     my $i = $this->degree;
-    my $result = $that->new;
-    while (0 <= $i) {
+    my $result = $that->new(0 <= $i? $this->coeff($i): ());
+    while (0 <= --$i) {
         $result = $result->mul($that)->add_const($this->coeff($i));
-        --$i;
     }
     return $result;
 }
@@ -415,18 +434,22 @@ sub mmod {
     my @den  = $that->coeff;
     @den or croak 'division by zero polynomial';
     my $hd   = pop @den;
+    if ($that->is_monic) {
+        undef $hd;
+    }
     my @rem  = $this->coeff;
     my $i    = $#rem - @den;
     while (0 <= $i) {
         my $q = pop @rem;
-        my $j = 0;
-        while ($j < $i) {
-            $rem[$j++] *= $hd;
+        if (defined $hd) {
+            foreach my $r (@rem) {
+                $r *= $hd;
+            }
         }
+        my $j = $i--;
         foreach my $d (@den) {
-            ($rem[$j++] *= $hd) -= $q * $d;
+            $rem[$j++] -= $q * $d;
         }
-        --$i;
     }
     return $this->new(@rem);
 }
@@ -589,6 +612,16 @@ sub definite_integral {
     return $ad->evaluate($upper) - $ad->evaluate($lower);
 }
 
+sub _make_ltz {
+    my ($config, $zero) = @_;
+    return 0 if !$config->{'fold_sign'};
+    my $sgn = $config->{'sign_of_coeff'};
+    return
+        defined($sgn)?
+            sub { $sgn->($_[0]) < 0     }:
+            sub {        $_[0]  < $zero };
+}
+
 sub as_string {
     my ($this, $params) = @_;
     my %config = (
@@ -600,23 +633,25 @@ sub as_string {
         $max_exp = 0;
     }
     my $result = q{};
-    my $one = $this->coeff_one;
+    my $zero = $this->coeff_zero;
+    my $ltz  = _make_ltz(\%config, $zero);
+    my $one  = $this->coeff_one;
+    my $with_variable = $config{'with_variable'};
     foreach my $exp ($config{'ascending'}? 0..$max_exp: reverse 0..$max_exp) {
         my $coeff = $this->coeff($exp);
-        my $with_variable = $config{'with_variable'};
 
         # skip term?
         if (
             $with_variable &&
             $exp < $max_exp &&
             $config{'fold_zero'} &&
-            $coeff == $this->coeff_zero
+            $coeff == $zero
         ) {
             next;
         }
 
         # plus/minus
-        if ($config{'fold_sign'} && $coeff < $this->coeff_zero) {
+        if ($ltz && $ltz->($coeff)) {
             $coeff = -$coeff;
             $result .= $config{q[] eq $result? 'leading_minus': 'minus'};
         }
@@ -647,6 +682,137 @@ sub as_string {
         }
     }
     return join q{}, $config{'prefix'}, $result, $config{'suffix'};
+}
+
+sub as_horner_tree {
+    my ($this, $params) = @_;
+    my %config = (@tree_defaults, %{$params});
+    my $exp = $this->degree;
+    if ($exp < 0) {
+        $exp = 0;
+    }
+    my $zero = $this->coeff_zero;
+    my $ltz  = _make_ltz(\%config, $zero);
+    my $coeff = $this->coeff($exp);
+    my $first_is_neg = $ltz && $ltz->($coeff);
+    if ($first_is_neg) {
+        $coeff = -$coeff;
+    }
+    my $result =
+        $exp && $this->coeff_one == $coeff? undef:
+        $config{'constant'}->($coeff);
+    my $is_sum = 0;
+    my $var_is_dynamic = 'CODE' eq ref $config{'variable'};
+    my $variable = $var_is_dynamic? undef: $config{'variable'};
+    while (0 <= --$exp) {
+        if ($is_sum) {
+            $result = $config{'group'}->($result);
+        }
+        if ($var_is_dynamic) {
+            $variable = $config{'variable'}->();
+        }
+        my $power = $variable;
+        if ($config{'expand_power'}) {
+            $is_sum = $zero != $this->coeff($exp);
+        }
+        else {
+            my $skip = 0;
+            while ($skip <= $exp && $zero == $this->coeff($exp-$skip)) {
+                ++$skip;
+            }
+            if ($skip) {
+                $exp -= $skip;
+                ++$skip if 0 <= $exp;
+                $power = $config{'power'}->($variable, $skip) if 1 < $skip;
+            }
+            $is_sum = 0 <= $exp;
+        }
+        $result =
+            defined($result)? $config{'product'}->($result, $power): $power;
+        if ($first_is_neg) {
+            $result = $config{'negation'}->($result);
+            $first_is_neg = 0;
+        }
+        if ($is_sum) {
+            my $coeff = $this->coeff($exp);
+            my $is_neg = $ltz && $ltz->($coeff);
+            if ($is_neg) {
+                $coeff = -$coeff;
+            }
+            my $const = $config{'constant'}->($coeff);
+            $result = $config{$is_neg? 'difference': 'sum'}->($result, $const);
+        }
+    }
+    if ($first_is_neg) {
+        $result = $config{'negation'}->($result);
+    }
+    return $result;
+}
+
+sub as_power_sum_tree {
+    my ($this, $params) = @_;
+    my %config = (@tree_defaults, %{$params});
+    my $exp = $this->degree;
+    if ($exp < 0) {
+        $exp = 0;
+    }
+    my $zero = $this->coeff_zero;
+    my $ltz  = _make_ltz(\%config, $zero);
+    my $one  = $this->coeff_one;
+    my $result = undef;
+    my $var_is_dynamic = 'CODE' eq ref $config{'variable'};
+    my $variable = $var_is_dynamic? undef: $config{'variable'};
+    while (0 <= $exp) {
+        my $coeff = $this->coeff($exp);
+
+        # skip term?
+        next if defined($result) && $zero == $coeff;
+
+        # variable and exponent
+        my $term = undef;
+        if (0 != $exp) {
+            if ($var_is_dynamic) {
+                $variable = $config{'variable'}->();
+            }
+            $term = $variable;
+            if (1 != $exp) {
+                if ($config{'expand_power'}) {
+                    my $todo = $exp-1;
+                    for (my $tmp=$exp; $tmp>1; --$tmp) {
+                        if ($var_is_dynamic) {
+                            $variable = $config{'variable'}->();
+                        }
+                        $term = $config{'product'}->($term, $variable);
+                    }
+                }
+                else {
+                    $term = $config{'power'}->($term, $exp);
+                }
+            }
+        }
+
+        # sign and coefficient
+        my $is_neg = $ltz && $ltz->($coeff);
+        if ($is_neg) {
+            $coeff = -$coeff;
+        }
+        if (0 == $exp || $one != $coeff) {
+            my $const = $config{'constant'}->($coeff);
+            $term = 0 == $exp? $const: $config{'product'}->($const, $term);
+        }
+
+        # summation
+        if (defined $result) {
+            $result = $config{$is_neg? 'difference': 'sum'}->($result, $term);
+        }
+        else {
+            $result = $is_neg? $config{'negation'}->($term): $term;
+        }
+    }
+    continue {
+        --$exp;
+    }
+    return $result;
 }
 
 sub gcd {
@@ -701,7 +867,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.002 of Math::Polynomial.
+This documentation refers to version 1.003 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -1213,17 +1379,16 @@ I<n>, this takes I<n+1> multiplications and I<n+1> subtractions.
 
 =item I<div_root>
 
-C<$p-E<gt>div_root($c, $check)> with a true value C<$check> checks
-whether a polynomial I<p> has a linear factor I<(x - c)> and divides
-it by that factor.  If I<c> is not actually a root of the polynomial,
-i.e. the division yields a non-zero remainder, an error is reported.
-For polynomials of degree I<n>, this takes I<n> multiplications and I<n>
-additions.
+C<$p-E<gt>div_root($c)> divides a polynomial I<p> by a linear factor
+I<(x - c)>, discarding any remainder.  For polynomials of degree I<n>,
+this takes I<n> multiplications and I<n> additions in the coefficient
+space.
 
-With a false value for C<$check> or without a second argument, as in
-C<$p-E<gt>div_root($c)>, divisibility will not be checked.  The remainder
-will simply be discarded.  This may be useful for factoring out a known
-root while working under limited precision.
+This method originally had an optional second argument C<$check>,
+enabling a check to make sure the value of C<$c> is actually a root
+of C<$p>, i.e. the discarded remainder is zero.  This usage is
+deprecated, however, in favour of using C<divmod_root> and explicitly
+checking the remainder.
 
 =item I<divmod_root>
 
@@ -1236,7 +1401,7 @@ takes I<n> multiplications and I<n> additions.
 This method must be called in array context.
 
 Note that there is no need for a I<mod_root> method, as that would
-be indistinguishable from I<evaluate>.
+be equivalent to I<evaluate>.
 
 =item I<monize>
 
@@ -1457,7 +1622,8 @@ effect.
 True value: contract the addition symbol and the sign of a negative
 value to a single subtraction symbol; false value (default): do not
 carry out this kind of replacement.  True is only allowed if the
-coefficient space defines a "less than" operator.
+coefficient space defines a native "less than" operator or the
+configuration parameter I<sign_of_coeff> (see below) is set.
 
 =item fold_zero
 
@@ -1489,6 +1655,17 @@ term with an exponent.
 Code reference specifying a function that takes a coefficient value
 and returns a string representing that value.  Default is ordinary
 stringification.
+
+=item sign_of_coeff
+
+If defined, code reference specifying a function that takes a
+coefficient value and returns a negative, zero, or positive integer
+if the argument is negative, zero, or positive, respectively.
+Default is C<undef>.
+
+This parameter can be used to let stringification distinguish
+"negative" from other values where the coefficient space is not an
+ordered space, i.e. lacking operators like C<E<lt>> (less than).
 
 =item plus
 
@@ -1534,6 +1711,133 @@ parenthesis.
 
 Suffix to append to the entire polynomial.  Default is a right
 parenthesis.
+
+=back
+
+=head2 Other Conversions
+
+Tree conversions can be used to generate data structures such as
+operand trees from polynomials.  There is a distinction between two
+types of construction -- a power sum scheme essentially follows the
+canonical way of describing polynomials as a sum of multiples of
+powers of the variable, while a Horner scheme avoids repeated
+exponentiation and uses just alternating additions of coefficients
+and multiplications by the variable, describing a polynomial in a
+way that can be more efficiently evaluated.
+
+=over 4
+
+=item I<as_horner_tree>
+
+C<$p-E<gt>as_horner_tree($config)> can generate nested data structures
+from a polynomial C<$p>, employing a Horner scheme.  A Horner scheme
+evaluates a polynomial using alternating additions and multiplications.
+For convenience, consecutive multiplications by the variable are
+condensed to a single multiplication by a power of the variable.
+In order to avoid exponentiation altogether, the configuration option
+I<expand_power> can be set to a true value.
+
+The C<$config> hashref is a mandatory parameter.  It defines what
+functions are to be called at each step of the tree construction.
+All configuration components are described in the next section.
+
+=item I<as_power_sum_tree>
+
+C<$p-E<gt>as_power_sum_tree($config)> can generate nested data
+structures from a polynomial C<$p>, where the polynomial is built
+as a sum of multiples of powers of a variable.
+
+The C<$config> hashref is a mandatory parameter.  It defines what
+functions are to be called at each step of the tree construction.
+All configuration components are described in the next section.
+
+=back
+
+=head2 Tree Conversion Configuration Options
+
+=over 4
+
+=item fold_sign
+
+Boolean, default false.  Defines whether I<negation> and I<difference>
+operations should be employed in order to avoid negative constants.
+
+A true value is only allowed if the coefficient space is an ordered
+space and defines a C<E<lt>> comparison operator for coefficients,
+or the configuration parameter I<sign_of_coeff> (see below) is set.
+
+=item expand_power
+
+Boolean, default false.  Defines whether the I<power> operation
+should be avoided in favour of consecutive multiplications.  Presumably
+more useful in horner trees than power sum trees.
+
+=item variable
+
+Node to insert for the variable.  If it is a coderef, the given
+subroutine will be called every time a variable is inserted into
+the tree and its return value will be used, otherwise the (same)
+value will be used directly each time.
+
+=item constant
+
+Coderef, node factory for constants.  Called with a coefficient as
+single parameter.  The result is used as a node representing that
+coefficient as a constant.
+
+=item negation
+
+Coderef, node negation.  Called with a node as single parameter.
+The result is used as negative of the original node.  Only used if
+I<fold_sign> is true.
+
+=item sum
+
+Coderef, node summation.  Called with two node parameters, ordered
+in decreasing complexity.  The result is propagated as sum of the
+original nodes.
+
+=item difference
+
+Coderef, node subtraction.  Called with two node parameters, ordered
+in decreasing complexity.  The result is propagated as sum of the
+original nodes.  Only used if I<fold_sign> is true.
+
+=item product
+
+Coderef, node multiplication.  Called with two node parameters,
+ordered like this: If one node is the variable or a power of the
+variable, it will be the second parameter, while a constant or a
+complex tree will be the first parameter.  The result is propagated
+as product of the original nodes.
+
+=item power
+
+Coderef, exponentiation.  Called with a node representing the
+variable and an integer number greater than one.  Used for both
+power sum trees (where degree is at least two) and Horner trees
+(where some terms other than the constant term are zero).  Note
+that the second parameter is a plain number rather than a node, in
+order to support data structures allowing only integer exponentiation.
+Not used if I<expand_power> is set to a true value (in either kind
+of tree).
+
+=item group
+
+Coderef, grouping.  Only used with Horner trees, optional.
+Called with a node representing a subexpression that would
+have to be in parentheses to maintain operator precedence.
+
+=item sign_of_coeff
+
+If defined, code reference specifying a function that takes a
+coefficient value and returns a negative, zero, or positive integer
+if the argument is negative, zero, or positive, respectively.
+Default is C<undef>.
+
+This parameter can be used to let tree construction distinguish
+"negative" from other values where the coefficient space is not an
+ordered space, i.e. lacking operators like C<E<lt>> (less than).
 
 =back
 
@@ -1621,10 +1925,6 @@ parenthesis.
   $q = $p->div_root(7);                        # p = q * (x-7) + c,
                                                #   c is some constant
 
-  $q = $p->div_root(7, 1);                     # p = q * (x-7)
-                                               #   if such q exists,
-                                               #   otherwise bang!
-
   ($q, $r) = $p->divmod_root(7);               # p = q * (x-7) + r,
                                                #   deg r < 1
 
@@ -1678,6 +1978,7 @@ parenthesis.
     fold_exp_zero => 1,
     fold_exp_one  => 1,
     convert_coeff => sub { "$_[0]" },
+    sign_of_coeff => undef,
     plus          => q{ + },
     minus         => q{ - },
     leading_plus  => q{},
@@ -1714,6 +2015,35 @@ parenthesis.
   };
   $str = $p->as_string($config);               # '(0, -3, 0, 2)'
 
+  # other conversions
+
+  $config = {
+    fold_sign  => 1,
+    variable   => 'x',
+    coeff      => sub { $[0] },
+    negation   => sub { "- $_[0]" },
+    sum        => sub { "$_[0] + $_[1]" },
+    difference => sub { "$_[0] - $_[1]" },
+    product    => sub { "$_[0]*$_[1]" },
+    power      => sub { "$_[0]^$_[1]" },
+    group      => sub { "($_[0])" },
+  };
+  $str = $p->as_horner_tree($config);          # '(2*x^2 - 3)*x'
+
+  $config = {
+    variable => sub { ['x'] },
+    coeff    => sub { ['c', @_] },
+    sum      => sub { ['+', @_] },
+    product  => sub { ['*', @_] },
+    power    => sub { ['^', @_] },
+    group    => sub { $_[0] },
+  };
+  $listref = $p->as_horner_tree($config);
+  # ['*', ['+', ['*', ['c', 2], ['^', ['x'], 2], ['c', -3]]], ['x']]
+
+  $listref = $p->as_power_sum_tree($config);
+  # ['+', ['*', ['c', 2], ['^', ['x'], 3]], ['*', ['c', -3], ['x']]]
+
   # other customizations
 
   $q = do {
@@ -1743,6 +2073,21 @@ parenthesis.
   $c1 = Math::BigRat->new('0');
   $c2 = Math::BigRat->new('3/2');
   $p = Math::Polynomial->new($c0, $c1, $c2);  # p(x) == 3/2*x**2 - 1/2
+
+  use Math::ModInt qw(mod);
+  $c0 = mod(4, 5);
+  $c1 = mod(2, 5);
+  $p = Math::Polynomial->new($c0, $c1);      # p(x) == 2*x + 4 (mod 5)
+  $p->string_config({
+    convert_coeff => sub { $_[0]->signed_residue },
+    sign_of_coeff => sub { $_[0]->signed_residue },
+  });
+  print "$p\n";                              # prints (2 x - 1)
+
+=head1 EXPORT
+
+Math::Polynomial does not export anything into the namespace of the
+caller.
 
 =head1 DIAGNOSTICS
 
@@ -1803,6 +2148,12 @@ involving large polynomials can consume a lot of memory and CPU
 time.  Exponent sanity checks help to avoid that from happening by
 accident.
 
+=item missing parameter: %s
+
+A method such as I<as_horner_tree> or I<as_power_sum_tree>, expecting
+a parameter hashref, was called without the mandatory parameter
+this message refers to.
+
 =item no such method: %s
 
 A modulo operator name was passed to I<gcd> which is not actually
@@ -1816,9 +2167,12 @@ I<monomial>, got something else instead.
 
 =item non-zero remainder
 
-The I<div_root> method was called with a first argument that was not
-actually a root of the polynomial and a true value as second argument,
-forcing a check for divisibility.
+The I<div_root> method was called with a first argument that was
+not actually a root of the polynomial and a true value as second
+argument, forcing a check for divisibility.
+
+Note that the two-argument usage of I<div_root> and therefore this
+diagnostic message is deprecated.
 
 =item usage: %s
 
@@ -2052,7 +2406,7 @@ and Kevin Ryde.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007-2009 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2010 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

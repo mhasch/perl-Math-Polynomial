@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 03_expressions.t 39 2009-06-08 21:21:57Z demetri $
+# $Id: 03_expressions.t 64 2009-06-17 20:01:21Z demetri $
 
 # Checking arithmetic operators and expressions.
 
@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 202 };
+BEGIN { plan tests => 207 };
 use Math::Polynomial 1.000;
 ok(1);  # module loaded
 
@@ -41,6 +41,7 @@ sub has_coeff {
 my $p = Math::Polynomial->new(-0.25, 0, 1.25);
 my $q = $p->new(-0.25, 0, 0.25);
 my $r = $p->new(-1, 2);
+my $mr = $p->new(-0.5, 1);
 my $s = $p->new(0.5, 0.5);
 my $c = $p->new(-0.5);
 my $zp = $p->new;
@@ -150,6 +151,8 @@ $qq = $p / $q;
 ok(has_coeff($qq, 5));                  # p / q
 $qq = $p / $r;
 ok(has_coeff($qq, 5/16, 5/8));          # p / r
+$qq = $p / $mr;
+ok(has_coeff($qq, 5/8, 5/4));           # p / mr
 $qq = $p / $c;
 ok(has_coeff($qq, 0.5, 0, -2.5));       # p / c
 $qq = eval { $p / $zp };
@@ -171,6 +174,8 @@ $qq = $p % $q;
 ok(has_coeff($qq, 1));                  # p % q
 $qq = $p % $r;
 ok(has_coeff($qq, 1/16));               # p % r
+$qq = $p % $mr;
+ok(has_coeff($qq, 1/16));               # p % mr
 $qq = $p % $c;
 ok(has_coeff($qq));                     # p % c
 $qq = eval { $p % $zp };
@@ -192,6 +197,8 @@ $qq = $p->mmod($q);
 ok(has_coeff($qq, 0.25));               # p mmod q
 $qq = $p->mmod($r);
 ok(has_coeff($qq, 0.25));               # p mmod r
+$qq = $p->mmod($mr);
+ok(has_coeff($qq, 1/16));               # p mmod mr
 $qq = $p->mmod($c);
 ok(has_coeff($qq));                     # p mmod c
 $qq = eval { $p->mmod($zp) };
@@ -216,6 +223,9 @@ ok(has_coeff($rr, 1));                  # p % q
 ($qq, $rr) = $p->divmod($r);
 ok(has_coeff($qq, 5/16, 5/8));          # p / r
 ok(has_coeff($rr, 1/16));               # p % r
+($qq, $rr) = $p->divmod($mr);
+ok(has_coeff($qq, 5/8, 5/4));           # p / mr
+ok(has_coeff($rr, 1/16));               # p % mr
 ($qq, $rr) = $p->divmod($c);
 ok(has_coeff($qq, 0.5, 0, -2.5));       # p / c
 ok(has_coeff($rr));                     # p % c

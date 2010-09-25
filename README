@@ -1,4 +1,4 @@
-Math-Polynomial version 1.002
+Math-Polynomial version 1.003
 =============================
 
 Math::Polynomial is a Perl class representing polynomials in one
@@ -66,7 +66,7 @@ Inspired by the module of the same name written by Mats Kindahl
 
 COPYRIGHT AND LICENCE
 
-Copyright (c) 2007-2009 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2010 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

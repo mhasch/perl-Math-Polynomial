@@ -1,5 +1,29 @@
 Revision history for Perl extension Math::Polynomial.
 
+                    Math::Polynomial Version 1.003
+                    ------------------------------
+
+- Release date: 2010-09-08
+
+- Added optimization for monic denominators to mmod.
+
+- Added small optimization to nest.
+
+- Deprecated optional parameter of div_root.
+
+- Added as_horner_tree and as_power_sum_tree methods, discussed in
+  [rt.cpan.org #46575].
+
+- Added tests covering tree conversion methods.
+
+- Added sign_of_coeff parameter for stringification and tree conversions.
+
+- Simplified Horner example script.
+
+- Added example script demonstrating Math::Symbolic interoperability.
+
+- Added test covering Math::ModInt interoperability.
+
                     Math::Polynomial Version 1.002
                     ------------------------------
 

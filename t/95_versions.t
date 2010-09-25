@@ -1,8 +1,8 @@
-# Copyright (c) 2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2009-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 95_versions.t 59 2009-06-11 21:50:57Z demetri $
+# $Id: 95_versions.t 98 2010-09-06 14:08:28Z demetri $
 
 # Checking if $VERSION strings of updated perl modules have been updated.
 # These are tests for the distribution maintainer.
@@ -14,24 +14,40 @@ use 5.006;
 use strict;
 use warnings;
 use Test;
+use FindBin qw($Bin);
+use File::Spec;
 use lib 't/lib';
 use Test::MyUtils;
 
 maintainer_only();
 
-my %old_versions = (
-    'lib/Math/Polynomial.pm' => {
-        '1.000' => 'SHA1 f4978d7196e4be9e31e6725eda10ec9cb1191480',
-        '1.001' => 'SHA1 13908cf12891248d7190c5ad6609a0c694b18a4d',
+my $known_versions_file = File::Spec->catfile('t',  qw(data KNOWN_VERSIONS));
+my %known_versions = ();
 
-    },
-    'lib/Math/Polynomial/Generic.pm' => {
-        '0.001' => 'SHA1 7691df469a5bed1e9db51a602e5eb2b6575390dc',
-    },
-    't/lib/Test/MyUtils.pm' => {
-        '0.003' => 'SHA1 ea029d964e2ce5ddf5ecc81a24d2dc2cd0d1fdf2',
-    },
-);
+if (open KV, '<', $known_versions_file) {
+    local $/ = "\n";
+    my $line_no = 0;
+    while (<KV>) {
+        ++$line_no;
+        next if /^\s*(?:#.*)?$/;        # ignore comments
+        if (/^\s*(\S+)\s+(\S+)\s+([a-f0-9]+)\s+(.*?)\s*$/) {
+            my ($version, $type, $checksum, $file) = ($1, $2, $3, $4);
+            if (exists $known_versions{$file}->{$version}->{$type}) {
+                my $old = $known_versions{$file}->{$version}->{$type};
+                print
+                    q[# ], $old eq $checksum? 'duplicate': 'conflicting',
+                    " entries in $known_versions_file ",
+                    "for $file version $version!\n";
+            }
+            $known_versions{$file}->{$version}->{$type} = $checksum;
+        }
+        else {
+            print "# bogus entry in $known_versions_file, line $line_no\n";
+        }
+    }
+    close KV;
+}
+
 my %checksums = ();
 
 my $manifest  = Test::MyUtils::slurp_or_bail('MANIFEST');
@@ -48,9 +64,9 @@ if (
         ^-----BEGIN\s+PGP\s+SIGNATURE-----\n
     }msx
 ) {
-    my ($hash_type, $checksums) = ($1, $2);
-    while ($checksums =~ m/^(\Q$hash_type\E [a-f\d]+)\s+(.*)$/mgo) {
-        $checksums{$2} = $1;
+    my ($hash_type, $checksums_txt) = ($1, $2);
+    while ($checksums_txt =~ m/^\Q$hash_type\E ([a-f\d]+)\s+(.*)$/mgo) {
+        $checksums{$2} = [$hash_type, $1];
     }
 }
 else {
@@ -105,8 +121,9 @@ foreach my $file (@pm_files) {
     }
     skip($documented? 0: 'version not found in POD', $version eq $documented);
 
-    my $checksum = exists($checksums{$file})? $checksums{$file}: '';
+    my $checksum = exists($checksums{$file})? $checksums{$file}: [];
     ok(exists $checksums{$file});
+    my ($cs_type, $cs_value) = @{$checksum};
 
     if (!exists $checksums{$file}) {
         foreach ('chronological', 'unchanged') {
@@ -118,12 +135,13 @@ foreach my $file (@pm_files) {
     my $old_checksum = '';
     my $chronological = 1;
     if (
-        !exists $old_versions{$file} or
-        !exists $old_versions{$file}->{$version}
+        !exists $known_versions{$file} or
+        !exists $known_versions{$file}->{$version} or
+        !exists $known_versions{$file}->{$version}->{$cs_type}
     ) {
-        if ($sane && exists $old_versions{$file}) {
+        if ($sane && exists $known_versions{$file}) {
             my $mov = -1;
-            foreach my $ov (keys %{$old_versions{$file}}) {
+            foreach my $ov (keys %{$known_versions{$file}}) {
                 if ($mov < $ov) {
                     $mov = $ov;
                 }
@@ -135,21 +153,29 @@ foreach my $file (@pm_files) {
         }
         if ($chronological) {
             print
-                "# $module $version is new:\n",
-                "# '$file' => {\n#     '$version' => '$checksum',\n# },\n";
+                "# new version:\n",
+                "# $version  @{$checksum}  $file\n",
+                "# consider adding this to $known_versions_file\n";
+        }
+        elsif (!exists $known_versions{$file}->{$version}->{$cs_type}) {
+            # version is known, but checksum type is not
+            print
+                "# new checksum type:\n",
+                "# $version  @{$checksum}  $file\n",
+                "# consider adding this to $known_versions_file\n";
         }
     }
     else {
-        $old_checksum = $old_versions{$file}->{$version};
+        $old_checksum = $known_versions{$file}->{$version}->{$cs_type};
     }
     ok($chronological);
 
-    if ($old_checksum && $old_checksum ne $checksum) {
+    if ($old_checksum && $old_checksum ne $cs_value) {
         print
             "# $file has been changed without version update --\n",
             "# please increase ", '$', "$module", "::VERSION\n";
     }
-    ok(!$old_checksum || $old_checksum eq $checksum);
+    ok(!$old_checksum || $old_checksum eq $cs_value);
 }
 
 __END__

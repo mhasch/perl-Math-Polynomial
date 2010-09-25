@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 11_math_bigrat.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 11_math_bigrat.t 75 2010-08-09 00:39:05Z demetri $
 
 # Checking coefficient space compatibility with Math::BigRat.
 
@@ -17,7 +17,7 @@ use Test;
 use lib 't/lib';
 use Test::MyUtils;
 BEGIN {
-    use_or_bail('Math::BigRat', 0.16, ['try' => 'GMP,Pari']);
+    use_or_bail('Math::BigRat', 0.16);
     plan tests => 8;
 }
 use Math::Polynomial 1.000;

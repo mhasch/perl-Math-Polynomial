@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 07_strings.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 07_strings.t 96 2010-09-06 10:21:12Z demetri $
 
 # Checking stringification and stringification parameters.
 
@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 65 };
+BEGIN { plan tests => 66 };
 use Math::Polynomial 1.000;
 ok(1);
 
@@ -154,6 +154,7 @@ my $config1 = {'variable' => 'X'};
 my $config2 = {'fold_sign' => 1};
 my $config3 = {'ascending' => 1};
 my $config4 = {'with_variable' => 0, 'plus' => q[, ]};
+my $config2a = {'fold_sign' => 1, 'sign_of_coeff' => sub { $_[0] }};
 
 Math::Polynomial->string_config($config1);
 $p->string_config($config2);
@@ -172,6 +173,7 @@ ok($q->as_string, '(x^3 + 2 x - 2)', '"q" with config2');
 $p->string_config($config3);
 ok($p->string_config, $config3, 'p with config3');
 ok($p->as_string, '(-1 + 2 x + x^3)', '"p" with config3');
+ok($p->as_string($config2a), '(x^3 + 2 x - 1)', '"p" with config2a');
 ok($pp->string_config, $config2, 'pp still with config2');
 ok($q->string_config, $config2, 'q still with config2');
 

@@ -2,58 +2,22 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 12_gf3.t 96 2010-09-06 10:21:12Z demetri $
+# $Id: 14_math_modint.t 94 2010-09-06 10:08:00Z demetri $
 
-# Checking compatibility with some non-standard coefficient space.
-# The particular space here is the three-element Galois field GF3.
+# Checking coefficient space compatibility with Math::ModInt.
+# Most examples are taken from t/12_gf3.t.
 
 # Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl t/12_gf3.t'
-
-package GF3;
-
-use strict;
-use warnings;
-
-use overload
-    'neg' => \&neg,
-    '+'   => \&add,
-    '-'   => \&sub_,
-    '*'   => \&mul,
-    '/'   => \&div,
-    '**'  => \&pow,
-    '""'  => \&as_string,
-    '<=>' => \&cmp,
-    fallback => undef;
-
-my @space = map { my $int = $_; bless \$int } 0..2;
-my @neg   = (0, 2, 1);
-my @add   = ([0, 1, 2], [1, 2, 0], [2, 0, 1]);
-my @sub   = ([0, 2, 1], [1, 0, 2], [2, 1, 0]);
-my @mul   = ([0, 0, 0], [0, 1, 2], [0, 2, 1]);
-my @div   = ([3, 0, 0], [3, 1, 2], [3, 2, 1]);
-my @pow   = ([0, 0, 3], [1, 1, 3], [1, 2, 3]);
-my @cmp   = ([0, -1, 1], [1, 0, 1], [-1, -1, 0]);
-
-sub new  { $space[$_[1] % 3] }
-sub neg  { $space[$neg[${$_[0]}]] }
-sub add  { $space[$add[${$_[0]}]->[${$_[1]}]] }
-sub sub_ { $space[$sub[${$_[0]}]->[${$_[1]}]] }
-sub mul  { $space[$mul[${$_[0]}]->[${$_[1]}]] }
-sub div  { $space[$div[${$_[0]}]->[${$_[1]}]] }
-sub pow  { $space[$_[1]? $pow[${$_[0]}]->[1 & $_[1]]: 1] }
-
-sub cmp { $cmp[${$_[0]}]->[${$_[1]}] }
-
-sub as_string { ('o', 'e', '-e')[${$_[0]}] }
-
-#########################
-
-package main;
+# `make test'. After `make install' it should work as `perl t/14_math_modint.t'
 
 use strict;
 use Test;
-BEGIN { plan tests => 11 };
+use lib 't/lib';
+use Test::MyUtils;
+BEGIN {
+    use_or_bail('Math::ModInt', undef, ['mod']);
+    plan tests => 11;
+}
 use Math::Polynomial 1.000;
 ok(1);  # Math::Polynomial loaded
 
@@ -67,7 +31,7 @@ sub enum {
         push @r, $n % $m;
         $n /= $m;
     }
-    return map { GF3->new($_) } @r;
+    return map { mod($_, $m) } @r;
 }
 
 sub is_primitive {
@@ -84,14 +48,19 @@ sub is_primitive {
     return 0;
 }
 
-Math::Polynomial->string_config( { fold_sign => 1, leading_plus => '+ ' } );
+Math::Polynomial->string_config({
+    convert_coeff => sub {('o', 'e', '-e')[$_[0]->residue]},
+    sign_of_coeff => sub {$_[0]->signed_residue},
+    fold_sign     => 1,
+    leading_plus  => '+ ',
+});
 
 my $mod = 3;
 my $ir3 = 8;
 my $pr3 = 4;
-my $nil = GF3->new(0);
-my $one = GF3->new(1);
-my $two = GF3->new(2);
+my $nil = mod(0, $mod);
+my $one = mod(1, $mod);
+my $two = mod(2, $mod);
 my $mo3 = $mod ** 3;
 
 my $p = Math::Polynomial->new($nil, $one, $two);

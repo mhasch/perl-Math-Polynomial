@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 50 2009-06-10 19:31:06Z demetri $
+# $Id: 92_consistency.t 99 2010-09-25 22:57:31Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -18,7 +18,6 @@ use Test::MyUtils;
 use File::Spec;
 use File::Basename;
 use FindBin;
-use Math::Polynomial 1.000;
 
 my $test_count = 0;
 
@@ -49,20 +48,23 @@ undef $/;
 
 maintainer_only();
 
-plan 27;
+plan 32;
 
-my $README   = 'README';
-my $META_YML = 'META.yml';
-my $MANIFEST = 'MANIFEST';
-my $CHANGES  = 'Changes';
-my $modname  = 'Math::Polynomial';
-my $distname = $modname;
-$distname =~ s/::/-/g;
+my $MAKEFILE_PL            = 'Makefile.PL';
+my $README                 = 'README';
+my $META_YML               = 'META.yml';
+my $MANIFEST               = 'MANIFEST';
+my $CHANGES                = 'Changes';
+my ($modname, $authormail) = info_from_makefile_pl();
+(my $distname              = $modname) =~ s{::}{-}g;
+(my $modfilename           = $modname) =~ s{::}{/}g;
+$modfilename .= '.pm';
 
 my %pattern = (
     'binary_file'      => qr{\.(?i:png|jpg|gif)\z},
-    'perl_code'        => qr{\.(?i:pm|pl|t)\z},
-    'ignore_copyright' => qr{^(?:Changes|MANIFEST|META\.yml|SIGNATURE)\z},
+    'perl_code'        => qr{\.(?i:pm|pl|t|pod)\z},
+    'ignore_copyright' =>
+        qr{^(?:Changes|MANIFEST|META\.yml|SIGNATURE|t/data/KNOWN_VERSIONS)\z},
     'copyright_info'   => qr{\bCopyright \(c\) (?:\d{4}-)?(\d{4})?\b},
     'revision_id'      => qr{^\s*#\s+\$Id[\:\$]},
     'revision_info'    =>
@@ -85,14 +87,17 @@ my %pattern = (
             ([\-\w]+\.t)
             \'
         }mx,
+    'changes_version_std' =>
+        qr{^(\d+\.\d\S*)\s+(?:Mon|Tue|Wed|Thu|Fri|Sat|Sun)\b},
+    'changes_version_headlines' =>
+        qr{^\s*\Q$modname\E\s+(?:[Vv]ersion\s+)?(\d\S*)\s*$},
+    'authormail_code' => qr[\QE<lt>${authormail}E<gt>\E],
 );
 
 # part 1: names and version numbers in various places
 
-my $mod_version =
-    defined($Math::Polynomial::VERSION)?
-        "$Math::Polynomial::VERSION":
-        'undef';
+require $modfilename;
+my $mod_version = $modname->VERSION;
 
 print "# dist name is $distname\n";
 print "# module version is $mod_version\n";
@@ -154,7 +159,10 @@ if (open FILE, '<', $CHANGES) {
     local $/ = "\n";
     $changes_version = '';
     while (<FILE>) {
-        if (/^\s*\Q$modname\E\s+(?:[Vv]ersion\s+)?(\d\S*)\s*$/) {
+        if (
+            /$pattern{'changes_version_std'}/o ||
+            /$pattern{'changes_version_headlines'}/o
+        ) {
             $changes_version = $1;
             print "# topmost version in $CHANGES is $changes_version\n";
             last;
@@ -218,6 +226,8 @@ my @badchar_distfiles   = ();
 my @hardtab_distfiles   = ();
 my @lacking_copyright   = ();
 my @lacking_revision_id = ();
+my @lacking_author_pod  = ();
+my @bogus_author_pod    = ();
 my @stale_copyright     = ();
 my @uncommited_files    = ();
 my @all_distfiles       = ();
@@ -232,6 +242,8 @@ if ($manifest_open) {
     close MANIFEST;
     foreach my $file (@all_distfiles) {
         if (open FILE, '<', $file) {
+            my $is_perlcode = $file =~ /$pattern{'perl_code'}/o;
+            my $has_pod = 0;
             if ($file !~ /$pattern{'binary_file'}/o) {
                 my $seen_copyright   = 0;
                 my $seen_revision_id = 0;
@@ -241,9 +253,11 @@ if ($manifest_open) {
                 my $seen_badchar     = 0;
                 my $seen_hardtab     = 0;
                 my $in_signature     = 0;
+                my $in_author        = 0;
                 my $copyright_year   = undef;
                 my $checkin_filename = undef;
                 my $checkin_year     = undef;
+                my @authors          = ();
                 while (<FILE>) {
                     if (/$pattern{'copyright_info'}/o) {
                         ++$seen_copyright;
@@ -273,6 +287,18 @@ if ($manifest_open) {
                     if (/-----(BEGIN|END) PGP SIGNATURE-----/) {
                         $in_signature = 'BEGIN' eq $1;
                     }
+                    next if !$is_perlcode;
+                    if (/^=head1 AUTHOR/) {
+                        $in_author = 1;
+                        $has_pod = 1;
+                    }
+                    elsif (/^=head1/) {
+                        $in_author = 0;
+                        $has_pod = 1;
+                    }
+                    elsif ($in_author && /^\s*(\S.*\S)/) {
+                        push @authors, $1;
+                    }
                 }
                 if (
                     !$seen_copyright &&
@@ -280,7 +306,7 @@ if ($manifest_open) {
                 ) {
                     push @lacking_copyright, $file;
                 }
-                if (!$seen_revision_id && $file =~ /$pattern{'perl_code'}/) {
+                if (!$seen_revision_id && $is_perlcode) {
                     push @lacking_revision_id, $file;
                 }
                 if ($seen_fixme) {
@@ -314,6 +340,15 @@ if ($manifest_open) {
                         }
                     }
                 }
+                if ($has_pod) {
+                    if (@authors) {
+                        grep { /$pattern{'authormail_code'}/o } @authors or
+                            push @bogus_author_pod, $file;
+                    }
+                    else {
+                        push @lacking_author_pod, $file;
+                    }
+                }
             }
             close FILE;
         }
@@ -345,6 +380,14 @@ if ($manifest_open) {
         print "# file with hardtab characters: $file\n";
     }
     test !@hardtab_distfiles, 'no text files with hardtab characters';
+    foreach my $file (@lacking_author_pod) {
+        print "# POD source file without AUTHOR section: $file\n";
+    }
+    test !@lacking_author_pod, 'POD sources have AUTHOR section';
+    foreach my $file (@bogus_author_pod) {
+        print "# POD AUTHOR section without this author's email: $file\n";
+    }
+    test !@bogus_author_pod, q{POD AUTHOR sections have this author's email};
     foreach my $file (@lacking_copyright) {
         print "# file lacking copyright notice: $file\n";
     }
@@ -363,7 +406,63 @@ if ($manifest_open) {
     test !@uncommited_files, 'revision IDs have date and match filenames';
 }
 else {
-    skip 8, "cannot open $MANIFEST file";
+    skip 12, "cannot open $MANIFEST file";
+}
+
+# prologue: fetching the module name and author mail address
+sub info_from_makefile_pl {
+    my ($modname, $authormail) = ();
+    my $mf_content = '';
+    my $mf_open = open MF, '<', $MAKEFILE_PL;
+    if ($mf_open) {
+        $mf_content = <MF>;
+        close MF;
+    }
+    test $mf_open, "$MAKEFILE_PL present";
+    if ($mf_open) {
+        $mf_content =~ m{
+            ^ \s* WriteMakefile\( \s*       # WriteMakefile call
+            (['"]?)                         # optional quote in $1
+            NAME                            # NAME key
+            (?1)                            # optional quote from $1
+            \s* => \s*                      # fat comma
+            (['"]?)                         # optional quote in $2
+            ([\w:]+)                        # module name in $3
+            (?2)                            # optional quote from $2
+            \s* ,                           # comma
+        }mx and $modname = $3;
+        if (defined $modname) {
+            print "# module name is $modname\n";
+        }
+        test defined($modname), "module name found in $MAKEFILE_PL file";
+        $mf_content =~ m{
+            ^ \s*                           # line start
+            (['"]?)                         # optional quote in $1
+            AUTHOR                          # AUTHOR key
+            (?1)                            # optional quote from $1
+            \s* => \s*                      # fat comma
+            (['"])                          # mandatory quote in $2
+            ([^\s<>]+ (?:\s+ [^\s<>]+)* )   # civilian name in $3
+            \s* \<                          # left angular bracket
+            ([\w.-]+)                       # mailbox in $4
+            \\? \@                          # optional backslash, at-sign
+            ([\w.-]+)                       # host in $5
+            \>                              # right angular bracket
+            (?2)                            # quote from $2
+            \s* ,                           # comma
+        }mx and $authormail = join '@', $4, $5;
+        if (defined $authormail) {
+            print "# single author mailbox is $authormail\n";
+        }
+        test defined($authormail), "author mailbox found in $MAKEFILE_PL file";
+    }
+    else {
+        skip 2, "cannot open $MAKEFILE_PL file";
+    }
+    return (
+        defined($modname)   ? $modname   : 'Acme::Cruft',
+        defined($authormail)? $authormail: 'john.doe@example.com',
+    );
 }
 
 __END__
