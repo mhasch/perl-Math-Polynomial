@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 99 2010-09-25 22:57:31Z demetri $
+# $Id: 92_consistency.t 101 2010-09-26 19:15:44Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -424,11 +424,11 @@ sub info_from_makefile_pl {
             ^ \s* WriteMakefile\( \s*       # WriteMakefile call
             (['"]?)                         # optional quote in $1
             NAME                            # NAME key
-            (?1)                            # optional quote from $1
+            \1                              # optional quote from $1
             \s* => \s*                      # fat comma
             (['"]?)                         # optional quote in $2
             ([\w:]+)                        # module name in $3
-            (?2)                            # optional quote from $2
+            \2                              # optional quote from $2
             \s* ,                           # comma
         }mx and $modname = $3;
         if (defined $modname) {
@@ -439,7 +439,7 @@ sub info_from_makefile_pl {
             ^ \s*                           # line start
             (['"]?)                         # optional quote in $1
             AUTHOR                          # AUTHOR key
-            (?1)                            # optional quote from $1
+            \1                              # optional quote from $1
             \s* => \s*                      # fat comma
             (['"])                          # mandatory quote in $2
             ([^\s<>]+ (?:\s+ [^\s<>]+)* )   # civilian name in $3
@@ -448,7 +448,7 @@ sub info_from_makefile_pl {
             \\? \@                          # optional backslash, at-sign
             ([\w.-]+)                       # host in $5
             \>                              # right angular bracket
-            (?2)                            # quote from $2
+            \2                              # quote from $2
             \s* ,                           # comma
         }mx and $authormail = join '@', $4, $5;
         if (defined $authormail) {

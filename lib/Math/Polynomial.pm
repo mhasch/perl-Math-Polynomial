@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 91 2010-09-06 09:57:35Z demetri $
+# $Id: Polynomial.pm 101 2010-09-26 19:15:44Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.003';
+our $VERSION      = '1.004';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -867,7 +867,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.003 of Math::Polynomial.
+This documentation refers to version 1.004 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
