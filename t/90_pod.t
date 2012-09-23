@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 90_pod.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 90_pod.t 2 2010-09-25 21:31:14Z demetri $
 
 # Check whether POD parses without errors or warnings.
 # This is a test for the distribution maintainer.

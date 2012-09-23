@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2012 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 101 2010-09-26 19:15:44Z demetri $
+# $Id: 92_consistency.t 9 2012-08-27 00:15:27Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -60,11 +60,20 @@ my ($modname, $authormail) = info_from_makefile_pl();
 (my $modfilename           = $modname) =~ s{::}{/}g;
 $modfilename .= '.pm';
 
+my %ignore_copyright = map {($_ => 1)} qw(
+    Changes
+    MANIFEST
+    META.json
+    META.yml
+    MYMETA.json
+    MYMETA.yml
+    SIGNATURE
+    t/data/KNOWN_VERSIONS
+);
+
 my %pattern = (
     'binary_file'      => qr{\.(?i:png|jpg|gif)\z},
     'perl_code'        => qr{\.(?i:pm|pl|t|pod)\z},
-    'ignore_copyright' =>
-        qr{^(?:Changes|MANIFEST|META\.yml|SIGNATURE|t/data/KNOWN_VERSIONS)\z},
     'copyright_info'   => qr{\bCopyright \(c\) (?:\d{4}-)?(\d{4})?\b},
     'revision_id'      => qr{^\s*#\s+\$Id[\:\$]},
     'revision_info'    =>
@@ -300,10 +309,7 @@ if ($manifest_open) {
                         push @authors, $1;
                     }
                 }
-                if (
-                    !$seen_copyright &&
-                    $file !~ /$pattern{'ignore_copyright'}/
-                ) {
+                if (!$seen_copyright && !exists $ignore_copyright{$file}) {
                     push @lacking_copyright, $file;
                 }
                 if (!$seen_revision_id && $is_perlcode) {

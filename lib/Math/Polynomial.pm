@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2010 by Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2012 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 101 2010-09-26 19:15:44Z demetri $
+# $Id: Polynomial.pm 111 2012-09-23 17:19:33Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.004';
+our $VERSION      = '1.005';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -529,16 +529,19 @@ sub pow {
     _check_int($exp);
     my $degree = $this->degree;
     return $this->new($this->coeff_one)        if 0 == $exp;
-    return $this                                if 0  > $degree;
+    return $this                               if 0  > $degree;
     return $this->new($this->coeff(0) ** $exp) if 0 == $degree;
     croak 'exponent too large'
         if defined($max_degree) && $degree * $exp > $max_degree;
-    my $result = undef;
-    while ($exp) {
-        if (1 & $exp) {
-            $result = defined($result)? $this->mul($result): $this;
-        }
-        $exp >>= 1 and $this = $this->mul($this);
+    my @binary = ();
+    while ($exp > 1) {
+        push @binary, 1 & $exp;
+        $exp >>= 1;
+    }
+    my $result = $this;
+    while (@binary) {
+        $result *= $result;
+        $result *= $this if pop @binary;
     }
     return $result;
 }
@@ -552,13 +555,16 @@ sub pow_mod {
     return $this->new($this->coeff_one)        if 0 == $exp;
     return $this                               if 0  > $this_d;
     return $this->new($this->coeff(0) ** $exp) if 0 == $this_d;
-    my $result = undef;
-    while ($exp) {
-        if (1 & $exp) {
-            $result =
-                defined($result)? $this->mul($result)->mod($that): $this;
-        }
-        $exp >>= 1 and $this = $this->mul($this)->mod($that);
+    my @binary = ();
+    while ($exp > 1) {
+        push @binary, 1 & $exp;
+        $exp >>= 1;
+    }
+    my $result = $this;
+    while (@binary) {
+        $result *= $result;
+        $result *= $this if pop @binary;
+        $result %= $that;
     }
     return $result;
 }
@@ -593,16 +599,28 @@ sub slice {
 
 sub differentiate {
     my ($this) = @_;
-    return $this->new( map { $this->coeff($_) * $_ } 1..$this->degree );
+    my $n   = $this->coeff_zero;
+    my $one = $this->coeff_one;
+    return $this->new(
+        map { $this->coeff($_) * ($n += $one) } 1..$this->degree
+    );
 }
 
 sub integrate {
     my ($this, $const) = @_;
+    my $zero = $this->coeff_zero;
+    my $one  = $this->coeff_one;
+    my $n    = $zero;
     if (!defined $const) {
-        $const = $this->coeff_zero;
+        $const = $zero;
     }
     return $this->new(
-        $const, map { $this->coeff($_) / ($_+1) } 0..$this->degree
+        $const,
+        map {
+            $n += $one;
+            my $c = $this->coeff($_);
+            $zero == $c? $c: $c / $n
+        } 0..$this->degree
     );
 }
 
@@ -867,7 +885,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.004 of Math::Polynomial.
+This documentation refers to version 1.005 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -1513,27 +1531,30 @@ plus I<monize>.
 
 =head2 Calculus Operators
 
-Calculus operators as presented here are meaningful mostly on coefficient
-spaces of real or complex numbers.  In particular, they require that
-coefficients can be multiplied and divided by integer numbers.
+Calculus operators as presented here are most meaningful on spaces
+such rational or real or complex numbers.  Starting with version 1.005
+of Math::Polynomial, calculus operators are no longer restricted to
+coefficient spaces compatible with Perl integers.  This means these
+operators do not mix coefficients and Perl integers any more, but does
+not imply they are equally useful with every kind of coefficients.
 
 =over 4
 
 =item I<differentiate>
 
-If the coefficient space allows multiplication by Perl integers,
 C<$p-E<gt>differentiate> calculates the first derivative of a
 polynomial.  For a polynomial of degree I<n>, this takes I<n>
-multiplications in the coefficient space.
+multiplications and I<n> additions in the coefficient space.
 
 =item I<integrate>
 
-If the coefficient space allows division by Perl integers,
 C<$p-E<gt>integrate> calculates an antiderivative of a polynomial.
 The coefficient of degree zero of the result will be zero.
 C<$p-E<gt>integrate($c)> does the same but adds the constant C<$c>.
-For a polynomial of degree I<n>, both forms of integration take
-I<n+1> divisions in the coefficient space.
+For a polynomial of degree I<n>, both forms of integration take I<n+1>
+comparisons with zero, at most I<n+1> divisions, and I<n+1> additions
+in the coefficient space.  Note that in coefficient spaces with zero
+divisors this operation might fail due to division by zero.
 
 =item I<definite_integral>
 
@@ -2406,7 +2427,7 @@ and Kevin Ryde.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007-2010 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2012 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

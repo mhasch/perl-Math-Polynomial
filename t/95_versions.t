@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 95_versions.t 98 2010-09-06 14:08:28Z demetri $
+# $Id: 95_versions.t 2 2010-09-25 21:31:14Z demetri $
 
 # Checking if $VERSION strings of updated perl modules have been updated.
 # These are tests for the distribution maintainer.

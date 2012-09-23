@@ -1,8 +1,8 @@
-# Copyright (c) 2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2009-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 93_examples.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 93_examples.t 2 2010-09-25 21:31:14Z demetri $
 
 # Checking whether all scripts in the examples directory run fine.
 # These are tests for the distribution maintainer, mostly.
@@ -20,7 +20,6 @@ use Test;
 use File::Spec;
 use lib "t/lib";
 use Test::MyUtils;
-use Math::Polynomial 1.000;
 
 maintainer_only('d_fork');
 

@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2010 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: MyUtils.pm 52 2009-06-10 20:48:52Z demetri $
+# $Id: MyUtils.pm 3 2010-09-25 21:41:13Z demetri $
 
 # Utility functions for tests:
 # * conditionally skip tests if required modules are not available
@@ -19,12 +19,27 @@ use File::Basename qw(dirname);
 use Config;
 use base 'Exporter';
 
-our $VERSION   = '0.004';
+our $VERSION   = '0.005';
 our @EXPORT    = qw(use_or_bail maintainer_only);
 our @EXPORT_OK = qw(slurp_or_bail this_perl);
 
-our $DIST_NAME    = 'Math-Polynomial';
+our $DIST_NAME    = _guess_distname();
 our $MAX_FILESIZE = 1024 * 1024;
+
+sub _guess_distname {
+    my $distname = undef;
+    if (open my $rh, '<', 'README') {
+        my $headline = <$rh>;
+        if (defined $headline && $headline =~ /^\s*(\w+(?:[^\w\s]+\w+)*)\s/) {
+            $distname = $1;
+        }
+        close $rh;
+    }
+    if (!defined $distname) {
+        $distname = 'This-Distribution';
+    }
+    return $distname;
+}
 
 sub _skip_all {
     my ($reason) = @_;

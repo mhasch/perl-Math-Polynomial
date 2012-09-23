@@ -1,5 +1,14 @@
 Revision history for Perl extension Math::Polynomial.
 
+                    Math::Polynomial Version 1.005
+                    ------------------------------
+
+- Release date: 2012-09-23
+
+- Lifted a limitation on coefficients for differentiate() and integrate().
+
+- Added an optimization for pow() and pow_mod().
+
                     Math::Polynomial Version 1.004
                     ------------------------------
 
@@ -157,7 +166,7 @@ Revision history for Perl extension Math::Polynomial.
 
 - Moved all imports to top of the module.
 
-- Added more standard sections to POD, like VERSION, DIAGNOSTICS, LICENCE.
+- Added more standard sections to POD, like VERSION, DIAGNOSTICS, LICENSE.
 
 - Added development status notice to README.
 
