@@ -25,7 +25,7 @@ t/12_gf3.t
 t/13_trees.t
 t/14_math_modint.t
 t/90_pod.t
-t/91_pod_cover.t
+t/91_pod_cover_cp.t
 t/92_consistency.t
 t/93_examples.t
 t/94_diag_cover.t

@@ -1,8 +1,8 @@
-# Copyright (c) 2009-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2009-2013 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 93_examples.t 2 2010-09-25 21:31:14Z demetri $
+# $Id: 93_examples.t 15 2013-05-31 16:52:22Z demetri $
 
 # Checking whether all scripts in the examples directory run fine.
 # These are tests for the distribution maintainer, mostly.
@@ -17,13 +17,14 @@ use 5.006;
 use strict;
 use warnings;
 use Test;
-use File::Spec;
 use lib "t/lib";
 use Test::MyUtils;
 
-maintainer_only('d_fork');
-
-plan tests => 10;
+BEGIN {
+    use_or_bail('File::Spec');
+    maintainer_only('d_fork');
+    plan tests => 10;
+}
 
 my $examples_dir = 'examples';
 my $shebang_pat  = qr{^#!/usr/bin/perl\s};

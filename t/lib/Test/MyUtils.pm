@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2013 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: MyUtils.pm 3 2010-09-25 21:41:13Z demetri $
+# $Id: MyUtils.pm 19 2013-06-01 21:18:11Z demetri $
 
 # Utility functions for tests:
 # * conditionally skip tests if required modules are not available
@@ -15,11 +15,10 @@ package Test::MyUtils;
 use 5.006;
 use strict;
 use warnings;
-use File::Basename qw(dirname);
 use Config;
 use base 'Exporter';
 
-our $VERSION   = '0.005';
+our $VERSION   = '0.006';
 our @EXPORT    = qw(use_or_bail maintainer_only);
 our @EXPORT_OK = qw(slurp_or_bail this_perl);
 
@@ -49,7 +48,7 @@ sub _skip_all {
 
 # To enforce a minimum version of a module, supply a $version value.
 # To use a module with default imports, omit $imports_ref.
-# To use a module with explicit or no imports, suppply an array reference.
+# To use a module with explicit or no imports, supply an array reference.
 sub use_or_bail {
     my ($module, $version, $imports_ref) = @_;
 

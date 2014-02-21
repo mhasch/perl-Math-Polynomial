@@ -1,8 +1,8 @@
-# Copyright (c) 2009-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2009-2013 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 95_versions.t 2 2010-09-25 21:31:14Z demetri $
+# $Id: 95_versions.t 15 2013-05-31 16:52:22Z demetri $
 
 # Checking if $VERSION strings of updated perl modules have been updated.
 # These are tests for the distribution maintainer.
@@ -14,14 +14,15 @@ use 5.006;
 use strict;
 use warnings;
 use Test;
-use FindBin qw($Bin);
-use File::Spec;
 use lib 't/lib';
 use Test::MyUtils;
 
-maintainer_only();
+BEGIN {
+    use_or_bail('File::Spec');
+    maintainer_only();
+}
 
-my $known_versions_file = File::Spec->catfile('t',  qw(data KNOWN_VERSIONS));
+my $known_versions_file = File::Spec->catfile(qw(t data KNOWN_VERSIONS));
 my %known_versions = ();
 
 if (open KV, '<', $known_versions_file) {

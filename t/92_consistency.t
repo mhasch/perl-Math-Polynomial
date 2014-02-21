@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2012 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2013 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 9 2012-08-27 00:15:27Z demetri $
+# $Id: 92_consistency.t 16 2013-05-31 16:53:11Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -15,9 +15,10 @@ use strict;
 use warnings;
 use lib 't/lib';
 use Test::MyUtils;
-use File::Spec;
-use File::Basename;
-use FindBin;
+BEGIN {
+    use_or_bail('File::Spec');
+    use_or_bail('File::Basename', undef, [qw(basename dirname)]);
+}
 
 my $test_count = 0;
 
@@ -112,12 +113,17 @@ print "# dist name is $distname\n";
 print "# module version is $mod_version\n";
 test $mod_version =~ qr/^\d+\.\d+\z/, 'sane version number';
 
-my $distroot = '.' eq $FindBin::Bin? '..': dirname($FindBin::Bin);
-if ($distroot =~ /\b\Q$distname\E-(\d+\.\d+)(?:-\w+)?\z/) {
-    test $1 eq $mod_version, 'numbered distro dir matches version';
+if (eval 'require FindBin') {
+    my $distroot = '.' eq $FindBin::Bin? '..': dirname($FindBin::Bin);
+    if ($distroot =~ /\b\Q$distname\E-(\d+\.\d+)(?:-\w+)?\z/) {
+        test $1 eq $mod_version, 'numbered distro dir matches version';
+    }
+    else {
+        skip 1, "not running in numbered distro dir";
+    }
 }
 else {
-    skip 1, "not running in numbered distro dir";
+    skip 1, "FindBin not available";
 }
 
 if (open FILE, '<', $README) {
@@ -363,7 +369,7 @@ if ($manifest_open) {
         }
     }
     foreach my $file (@missing_distfiles) {
-        print "# missing file: $file\n";
+        print qq{# missing file: "$file"\n};
     }
     test !@missing_distfiles, 'distribution complete';
     foreach my $file (@fixme_distfiles) {

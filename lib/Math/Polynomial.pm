@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2012 by Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2013 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 111 2012-09-23 17:19:33Z demetri $
+# $Id: Polynomial.pm 114 2014-02-21 16:46:24Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.005';
+our $VERSION      = '1.006';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -885,7 +885,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.005 of Math::Polynomial.
+This documentation refers to version 1.006 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -1558,7 +1558,6 @@ divisors this operation might fail due to division by zero.
 
 =item I<definite_integral>
 
-If the coefficient space allows division by Perl integers,
 C<$p-E<gt>definite_integral($x1, $x2)> calculates the value of the
 definite integral from C<$x1> to C<$x2> over the polynomial function
 given by C<$p>.  For real numbers I<x1 E<lt> x2>, this can be
@@ -1566,8 +1565,8 @@ interpreted as the signed area bound by the lines I<x=x1>, I<y=0>,
 I<x=x2> and the graph of I<p(x)>, where parts below the x-axis are
 regarded as negative.
 
-For a polynomial of degree I<n>, this takes I<n+1> divisions, I<2*n>
-multiplications, I<2*n> additions and I<1> subtraction in the
+For a polynomial of degree I<n>, this takes the same operations
+as I<integrate> plus twice I<evaluate> plus a subtraction in the
 coefficient space.  If you need to calculate more than one definite
 integral over the same polynomial function, it is more efficient
 to store an antiderivative once (see L</integrate>) and evaluate it
@@ -1821,8 +1820,8 @@ original nodes.
 =item difference
 
 Coderef, node subtraction.  Called with two node parameters, ordered
-in decreasing complexity.  The result is propagated as sum of the
-original nodes.  Only used if I<fold_sign> is true.
+in decreasing complexity.  The result is propagated as difference
+of the original nodes.  Only used if I<fold_sign> is true.
 
 =item product
 
@@ -1838,7 +1837,7 @@ Coderef, exponentiation.  Called with a node representing the
 variable and an integer number greater than one.  Used for both
 power sum trees (where degree is at least two) and Horner trees
 (where some terms other than the constant term are zero).  Note
-that the second parameter is a plain number rather than a node, in
+that the second parameter is not a node but a plain number, in
 order to support data structures allowing only integer exponentiation.
 Not used if I<expand_power> is set to a true value (in either kind
 of tree).
@@ -2236,12 +2235,10 @@ Yet another set of modules may provide alternative implementations
 optimized for special cases such as sparse polynomials, or taking
 benefit from specialized external math libraries.
 
-Multivariate polynomials, finally, will presumably live in a class
-that is neither a base class nor a subclass of Math::Polynomial,
-as both subjects do not have enough in common to suggest otherwise.
+Multivariate polynomials, finally, are now implemented in an
+independent package, Math-Polynomial-Multivariate.
 
-More detailed information as well as a couple of examples are
-supposed to be added in an upcoming release.
+This list is not necessarily complete.
 
 =head1 DEPENDENCIES
 
@@ -2300,7 +2297,7 @@ Math::Complex (usually bundled with perl)
 
 =item *
 
-Math::BigRat
+Math::BigRat (usually bundled with perl)
 
 =back
 
@@ -2359,11 +2356,6 @@ root-finding algorithm.
 
 =item *
 
-I<Math::Polynomial::Multivariate> -
-a complementary module dealing with polynomials in more than one variable.
-
-=item *
-
 I<Math::Polynomial::Parse> -
 an extension providing methods to create polynomial objects from strings.
 
@@ -2375,18 +2367,23 @@ Other Modules:
 
 =item *
 
+I<Math::Polynomial::Multivariate> -
+a module dealing with polynomials in more than one variable.
+
+=item *
+
 I<PDL> -
 the Perl Data Language.
 
 =item *
 
-Math::GMP -
-Interface to the GMP arbitrary precision integer math library.
+Math::GMPz -
+an interface to the GMP arbitrary precision integer math library.
 
 =item *
 
 Math::Pari -
-Interface to the Pari math library.
+interface to the Pari math library.
 
 =back
 
@@ -2427,7 +2424,7 @@ and Kevin Ryde.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007-2012 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2013 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,
