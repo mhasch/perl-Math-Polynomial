@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2015 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 12_gf3.t 96 2010-09-06 10:21:12Z demetri $
+# $Id: 12_gf3.t 116 2015-03-13 20:42:15Z demetri $
 
 # Checking compatibility with some non-standard coefficient space.
 # The particular space here is the three-element Galois field GF3.
@@ -53,7 +53,7 @@ package main;
 
 use strict;
 use Test;
-BEGIN { plan tests => 11 };
+BEGIN { plan tests => 15 };
 use Math::Polynomial 1.000;
 ok(1);  # Math::Polynomial loaded
 
@@ -153,5 +153,22 @@ foreach my $p (map { $gen->new(enum($_, $mod)) } 1..$mo3-2) {
 ok($ok1);       # inverses using Little Fermat
 ok($ok2);       # inverses using Chinese Remainder
 ok($ok3);       # inverses using inv_mod
+
+$ok = 1;
+$p = $c1;
+foreach my $n (0 .. $mo3) {
+    $q = $gen->exp_mod($n);
+    $ok &&= $p->is_equal($q);
+    $p = ($p << 1) % $gen;
+}
+ok($ok);        # exp_mod method in general
+
+my $c2 = $c1->new($two);
+$p = $c2->exp_mod(0);
+ok($p->is_zero);
+$p = $c2->exp_mod(1);
+ok($p->is_zero);
+$p = $c2->exp_mod(2);
+ok($p->is_zero);
 
 __END__

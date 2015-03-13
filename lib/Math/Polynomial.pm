@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2013 by Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2015 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 114 2014-02-21 16:46:24Z demetri $
+# $Id: Polynomial.pm 118 2015-03-13 23:03:04Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.006';
+our $VERSION      = '1.007';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -569,6 +569,28 @@ sub pow_mod {
     return $result;
 }
 
+sub exp_mod {
+    my ($this, $exp) = @_;
+    _check_int($exp);
+    return $this->new                   if 0 == $this->degree;
+    return $this->new($this->coeff_one) if 0 == $exp;
+    my @binary = ();
+    while ($exp > 1) {
+        push @binary, 1 & $exp;
+        $exp >>= 1;
+    }
+    my $result = $this->new($this->coeff_zero, $this->coeff_one);
+    while (@binary) {
+        $result *= $result;
+        if (pop @binary) {
+            local $max_degree;
+            $result <<= 1;
+        }
+        $result %= $this;
+    }
+    return $result;
+}
+
 sub shift_up {
     my ($this, $exp) = @_;
     _check_int($exp);
@@ -885,7 +907,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.006 of Math::Polynomial.
+This documentation refers to version 1.007 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -1329,6 +1351,11 @@ C<$p1-E<gt>pow_mod($n, $p2)> is equivalent to C<($p1 ** $n) % $p2>,
 except that the modulo operation is repeatedly applied to intermediate
 results in order to keep their degrees small.  The exponent C<$n>
 must be a non-negative integer.
+
+=item I<exp_mod>
+
+C<$p-E<gt>exp_mod($n)> is equivalent to C<(x ** $n) % $p>.
+The exponent C<$n> must be a non-negative integer.
 
 =item I<add_const>
 
@@ -1962,6 +1989,9 @@ ordered space, i.e. lacking operators like C<E<lt>> (less than).
   $r = $p1->pow_mod(3, $p2);                   # p1**3 == q * p2 + r,
                                                #   deg r < deg p2
 
+  $r = $p->exp_mod(3);                         # x**3 == q * p + r,
+                                               #   deg r < deg p
+
   # greatest common divisor
   $d = $p1->gcd($p2);                          # p1 == q1 * d,
                                                # p2 == q2 * d,
@@ -2275,14 +2305,6 @@ Math::Complex (usually bundled with perl)
 
 =item *
 
-File::Spec (usually bundled with perl)
-
-=item *
-
-File::Basename (usually bundled with perl)
-
-=item *
-
 FindBin (usually bundled with perl)
 
 =back
@@ -2424,7 +2446,7 @@ and Kevin Ryde.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007-2013 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2015 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,

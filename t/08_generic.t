@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2015 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 08_generic.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 08_generic.t 116 2015-03-13 20:42:15Z demetri $
 
 # Checking experimental interface extension Math::Polynomial::Generic.
 
@@ -14,9 +14,9 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 24 };
+BEGIN { plan tests => 27 };
 use Math::Polynomial 1.000;
-use Math::Polynomial::Generic qw(X C);
+use Math::Polynomial::Generic qw(:legacy X C);
 use Math::Complex;
 ok(1);  # 1
 
@@ -103,5 +103,11 @@ ok($r->_is_generic);    # 23
 
 $s = $r + C(0);
 check($s, Math::Polynomial->new(0, 3, -2, 0, 3));       # 24
+
+$p = X + X;
+ok($p->_is_generic);                            # 25
+$q = $p / 2;
+ok(!$q->_is_generic);                           # 26
+check($q, Math::Polynomial->new(0, 1));         # 27
 
 __END__

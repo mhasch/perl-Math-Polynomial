@@ -1,8 +1,8 @@
-# Copyright (c) 2009 by Martin Becker.  All rights reserved.
+# Copyright (c) 2009-2015 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Generic.pm 60 2009-06-11 21:51:47Z demetri $
+# $Id: Generic.pm 116 2015-03-13 20:42:15Z demetri $
 
 package Math::Polynomial::Generic;
 
@@ -17,8 +17,9 @@ require Exporter;
 use base qw(Math::Polynomial Exporter);
 
 our @EXPORT_OK = qw( X C );
+our %EXPORT_TAGS = ( legacy => [] );
 
-our $VERSION = '0.002';
+our $VERSION = '1.007';
 
 my $x_singleton = Math::Polynomial::Generic->new(0, 1);
 
@@ -70,9 +71,25 @@ Math::Polynomial::Generic - syntactical sugar coating Math::Polynomial
 
 =head1 VERSION
 
-This documentation refers to version 0.002 of Math::Polynomial::Generic.
-As of this version, the interface is still experimental and should
-not be relied upon in production code.
+This documentation refers to version 1.007 of Math::Polynomial::Generic.
+
+=head1 DEPRECATION NOTICE
+
+This module has always been declared as experimental and its interface
+as not to be taken for granted.  The intention was to give users
+more expressive flexibility through a kind of polynomial object
+that is not bound to a particular coefficient space.
+
+This experiment is now considered a failure.  Coefficient spaces need to
+be specified at one point, and delaying this part of proper initialization
+seems do do more harm than good in terms of clarity.
+
+Therefore, Math::Polynomial::Generic is now scheduled for deprecation.
+Starting with the first version after January 1, 2016, using the
+module will trigger a deprecation warning unless the special symbol
+C<:legacy> appears on the import list.  At some later time, the
+module will be discontinued altogether.  Currently, importing
+C<:legacy> is optional and does nothing.
 
 =head1 SYNOPSIS
 
@@ -191,6 +208,22 @@ object C<$p>, the result sharing the coefficient space with C<$q>.
 By default, nothing is exported into the caller's namespace.  The
 polynomial generators X and C can be explicitly imported, however.
 
+The special symbol C<:legacy> can be imported without any consequences.
+In future versions of the library, it can be used to suppress
+deprecation warnings.
+
+=head2 MIGRATION
+
+As this module is scheduled for deprecation, existing applications
+should be migrated to no longer use it.  This, fortunately, is
+rather easy.  Instead of the symbol C<X>, we recommend to use a
+variable C<$X> that is initialized as
+C<Math::Polynomial-E<gt>new($zero, $one)> with appropriate coefficient
+values C<$zero> and C<$one>.
+
+C<C($coeff)> can be replaced by C<Math::Polynomial-E<gt>new($coeff)>
+or it can be defined locally as a small wrapper for the same.
+
 =head1 SEE ALSO
 
   Math::Polynomial
@@ -201,7 +234,7 @@ Martin Becker, E<lt>becker-cpan-mp@cozap.comE<gt>
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2009 by Martin Becker.  All rights reserved.
+Copyright (c) 2009-2015 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6 or,

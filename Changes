@@ -1,5 +1,14 @@
 Revision history for Perl extension Math::Polynomial.
 
+                    Math::Polynomial Version 1.007
+                    ------------------------------
+
+- Release date: 2015-03-13
+
+- Added exp_mod() method.
+
+- Scheduled Math::Polynomial::Generic for deprecation.
+
                     Math::Polynomial Version 1.006
                     ------------------------------
 

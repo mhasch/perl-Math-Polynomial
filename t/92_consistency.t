@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2013 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2015 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 92_consistency.t 16 2013-05-31 16:53:11Z demetri $
+# $Id: 92_consistency.t 22 2015-03-13 21:27:35Z demetri $
 
 # Checking package consistency (version numbers, file names, ...).
 # These are tests for the distribution maintainer.
@@ -156,13 +156,13 @@ if (open FILE, '<', $META_YML) {
     else {
         skip 1, "unknown $META_YML dist name";
     }
-    my $found_vers = $metayml =~ /^version:\s+(\S+)$/mi;
+    my $found_vers = $metayml =~ /^version:\s+('?)([^\s']+)\1$/mi;
     test $found_vers;
-    if ($found_dist) {
-        test $1 eq $mod_version, "$META_YML has matching version";
+    if ($found_vers) {
+        test $2 eq $mod_version, "$META_YML has matching version";
     }
     else {
-        skip 1, "unknown $META_YML dist name";
+        skip 1, "module version not found in $META_YML";
     }
 }
 else {
