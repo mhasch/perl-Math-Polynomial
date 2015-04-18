@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 118 2015-03-13 23:03:04Z demetri $
+# $Id: Polynomial.pm 123 2015-04-18 20:22:56Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.007';
+our $VERSION      = '1.008';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -67,6 +67,7 @@ my @string_defaults = (
     variable      => q{x},
     prefix        => q{(},
     suffix        => q{)},
+    wrap          => sub { $_[1] },
 );
 
 my $global_string_config = {};
@@ -76,6 +77,7 @@ my @tree_defaults = (
     expand_power  => 0,
     group         => sub { $_[0] },
     sign_of_coeff => undef,
+    wrap          => sub { $_[1] },
     map {
         my $key = $_;
         ($key => sub { croak "missing parameter: $key" })
@@ -721,7 +723,10 @@ sub as_string {
             }
         }
     }
-    return join q{}, $config{'prefix'}, $result, $config{'suffix'};
+    return join q{},
+        $config{'prefix'},
+        $config{'wrap'}->($this, $result),
+        $config{'suffix'};
 }
 
 sub as_horner_tree {
@@ -907,7 +912,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.007 of Math::Polynomial.
+This documentation refers to version 1.008 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -1759,6 +1764,13 @@ parenthesis.
 Suffix to append to the entire polynomial.  Default is a right
 parenthesis.
 
+=item wrap
+
+Wrapping or post-processing function: Coderef called with the
+polynomial object and its raw stringification (without prefix and
+suffix) to return a final stringification (still without prefix and
+suffix).  Default is a function returning its second argument.
+
 =back
 
 =head2 Other Conversions
@@ -2038,6 +2050,7 @@ ordered space, i.e. lacking operators like C<E<lt>> (less than).
     variable      => q{x},
     prefix        => q{(},
     suffix        => q{)},
+    wrap          => sub { $_[1] },
   };
   $str = "$p";                                 # '(2 x^3 + -3 x)'
   $str = $p->as_string();                      # '(2 x^3 + -3 x)'

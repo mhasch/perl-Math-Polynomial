@@ -1,5 +1,12 @@
 Revision history for Perl extension Math::Polynomial.
 
+                    Math::Polynomial Version 1.008
+                    ------------------------------
+
+- Release date: 2015-04-18
+
+- Added wrap parameter for string_configuration.
+
                     Math::Polynomial Version 1.007
                     ------------------------------
 

@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2010 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2015 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 07_strings.t 96 2010-09-06 10:21:12Z demetri $
+# $Id: 07_strings.t 123 2015-04-18 20:22:56Z demetri $
 
 # Checking stringification and stringification parameters.
 
@@ -14,7 +14,7 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 66 };
+BEGIN { plan tests => 67 };
 use Math::Polynomial 1.000;
 ok(1);
 
@@ -154,7 +154,8 @@ my $config1 = {'variable' => 'X'};
 my $config2 = {'fold_sign' => 1};
 my $config3 = {'ascending' => 1};
 my $config4 = {'with_variable' => 0, 'plus' => q[, ]};
-my $config2a = {'fold_sign' => 1, 'sign_of_coeff' => sub { $_[0] }};
+my $config5 = {'fold_sign' => 1, 'sign_of_coeff' => sub { $_[0] }};
+my $config6 = {'wrap' => sub { ref($_[0]) . q[ ] . $_[1] }};
 
 Math::Polynomial->string_config($config1);
 $p->string_config($config2);
@@ -166,6 +167,12 @@ my $pp = $p->clone;
 ok($pp->string_config, $config2, 'pp with config2');
 ok($pp->as_string, '(x^3 + 2 x - 1)', '"pp" with config2');
 
+ok(
+    $pp->as_string($config6),
+    '(Math::Polynomial x^3 + 2 x + -1)',
+    '"pp" with config6',
+);
+
 my $q = $p - 1;
 ok($q->string_config, $config2, 'q with config2');
 ok($q->as_string, '(x^3 + 2 x - 2)', '"q" with config2');
@@ -173,7 +180,7 @@ ok($q->as_string, '(x^3 + 2 x - 2)', '"q" with config2');
 $p->string_config($config3);
 ok($p->string_config, $config3, 'p with config3');
 ok($p->as_string, '(-1 + 2 x + x^3)', '"p" with config3');
-ok($p->as_string($config2a), '(x^3 + 2 x - 1)', '"p" with config2a');
+ok($p->as_string($config5), '(x^3 + 2 x - 1)', '"p" with config5');
 ok($pp->string_config, $config2, 'pp still with config2');
 ok($q->string_config, $config2, 'q still with config2');
 
@@ -186,8 +193,8 @@ ok($r->as_string, '(1, 0, 2, -1)', '"r" with global config4');
 ok($r == $p);
 
 Math::Polynomial->string_config(undef);
-my $config5 = Math::Polynomial->string_config;
-ok(defined($config5) && 0 == keys %{$config5});
+my $config7 = Math::Polynomial->string_config;
+ok(defined($config7) && 0 == keys %{$config7});
 ok($r->as_string, '(x^3 + 2 x + -1)', '"r" with global defaults');
 
 __END__
