@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2015 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2016 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Makefile.PL 120 2015-03-13 23:10:05Z demetri $
+# $Id: Makefile.PL 127 2016-07-28 13:23:18Z demetri $
 
 use strict;
 use ExtUtils::MakeMaker;
@@ -25,10 +25,15 @@ WriteMakefile(
     $ExtUtils::MakeMaker::VERSION >= 6.46? (
         META_MERGE => {
             'meta-spec' => { version => 2 },
-            recommends => {
-                'Math::Complex'       => 0,
-                'Math::BigRat'        => 0,
-                'Math::ModInt'        => 0,
+            prereqs => {
+                runtime => {
+                    recommends => {
+                        'Math::Complex'       => 0,
+                        'Math::BigInt'        => 0,
+                        'Math::BigRat'        => 0,
+                        'Math::ModInt'        => 0,
+                    },
+                },
             },
         },
     ): (),

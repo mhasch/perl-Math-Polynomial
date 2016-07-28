@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2015 by Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2016 by Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 123 2015-04-18 20:22:56Z demetri $
+# $Id: Polynomial.pm 127 2016-07-28 13:23:18Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.008';
+our $VERSION      = '1.009';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -912,7 +912,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.008 of Math::Polynomial.
+This documentation refers to version 1.009 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -2316,10 +2316,6 @@ Test (usually bundled with perl)
 
 Math::Complex (usually bundled with perl)
 
-=item *
-
-FindBin (usually bundled with perl)
-
 =back
 
 Recommended modules for increased functionality are:
@@ -2332,7 +2328,15 @@ Math::Complex (usually bundled with perl)
 
 =item *
 
+Math::BigInt (usually bundled with perl)
+
+=item *
+
 Math::BigRat (usually bundled with perl)
+
+=item *
+
+Math::ModInt (available on CPAN)
 
 =back
 
@@ -2459,7 +2463,7 @@ and Kevin Ryde.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (c) 2007-2015 by Martin Becker.  All rights reserved.
+Copyright (c) 2007-2016 by Martin Becker.  All rights reserved.
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself, either Perl version 5.6.0 or,
