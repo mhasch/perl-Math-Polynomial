@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Polynomial.pm 127 2016-07-28 13:23:18Z demetri $
+# $Id: Polynomial.pm 129 2016-08-08 17:27:26Z demetri $
 
 package Math::Polynomial;
 
@@ -44,7 +44,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.009';
+our $VERSION      = '1.011';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -912,7 +912,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.009 of Math::Polynomial.
+This documentation refers to version 1.011 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -2332,7 +2332,7 @@ Math::BigInt (usually bundled with perl)
 
 =item *
 
-Math::BigRat (usually bundled with perl)
+Math::BigRat (usually bundled with perl, but see caveat below)
 
 =item *
 
@@ -2346,6 +2346,13 @@ At the time of release, there were no known unresolved issues with
 this module.  Bug reports and suggestions are welcome -- please
 submit them through the CPAN RT,
 L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Math-Polynomial>.
+
+Math::BigRat v0.260802, as shipped with perl-5.24.0, is incompatible with
+recent versions of Math::BigInt, such as v1.999726.  On environments
+with mismatched Math::BigInt / Math::BigRat versions, rational arithmetic
+goes haywire.  This can lead to failures in script t/11_math_bigrat.t of
+our test suite (as well as everything else using Math::BigRat objects).
+You probably need to upgrade Math::BigRat if you see this happen.
 
 =head1 SEE ALSO
 

@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Makefile.PL 127 2016-07-28 13:23:18Z demetri $
+# $Id: Makefile.PL 129 2016-08-08 17:27:26Z demetri $
 
 use strict;
 use ExtUtils::MakeMaker;
@@ -30,7 +30,7 @@ WriteMakefile(
                     recommends => {
                         'Math::Complex'       => 0,
                         'Math::BigInt'        => 0,
-                        'Math::BigRat'        => 0,
+                        'Math::BigRat'        => '0.260804',
                         'Math::ModInt'        => 0,
                     },
                 },
@@ -43,7 +43,6 @@ WriteMakefile(
     $ExtUtils::MakeMaker::VERSION >= 6.56? (
         BUILD_REQUIRES => {
             'Test'                => 0,
-            'Math::Complex'       => 0,
             'ExtUtils::MakeMaker' => 0,
         },
     ): (),

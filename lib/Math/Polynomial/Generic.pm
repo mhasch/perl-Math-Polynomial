@@ -2,7 +2,7 @@
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: Generic.pm 126 2016-07-28 13:10:20Z demetri $
+# $Id: Generic.pm 129 2016-08-08 17:27:26Z demetri $
 
 package Math::Polynomial::Generic;
 
@@ -19,7 +19,7 @@ use base qw(Math::Polynomial Exporter);
 our @EXPORT_OK = qw( X C );
 our %EXPORT_TAGS = ( legacy => [] );
 
-our $VERSION = '1.009';
+our $VERSION = '1.011';
 
 my $deprecated  = 1;
 my $x_singleton = Math::Polynomial::Generic->new(0, 1);
@@ -89,7 +89,7 @@ Math::Polynomial::Generic - syntactical sugar coating Math::Polynomial
 
 =head1 VERSION
 
-This documentation refers to version 1.009 of Math::Polynomial::Generic.
+This documentation refers to version 1.011 of Math::Polynomial::Generic.
 
 =head1 DEPRECATION NOTICE
 

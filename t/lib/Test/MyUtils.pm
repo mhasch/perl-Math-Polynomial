@@ -1,8 +1,8 @@
-# Copyright (c) 2008-2013 Martin Becker.  All rights reserved.
+# Copyright (c) 2008-2016 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: MyUtils.pm 19 2013-06-01 21:18:11Z demetri $
+# $Id: MyUtils.pm 25 2016-08-07 21:32:16Z demetri $
 
 # Utility functions for tests:
 # * conditionally skip tests if required modules are not available
@@ -18,9 +18,9 @@ use warnings;
 use Config;
 use base 'Exporter';
 
-our $VERSION   = '0.006';
+our $VERSION   = '0.007';
 our @EXPORT    = qw(use_or_bail maintainer_only);
-our @EXPORT_OK = qw(slurp_or_bail this_perl);
+our @EXPORT_OK = qw(slurp_or_bail this_perl report_version);
 
 our $DIST_NAME    = _guess_distname();
 our $MAX_FILESIZE = 1024 * 1024;
@@ -54,6 +54,11 @@ sub use_or_bail {
 
     if (!eval "require $module") {
         _skip_all("$module not available");
+    }
+
+    my $loaded_version = eval { $module->VERSION };
+    if (defined $loaded_version) {
+        print "# module $module version is $loaded_version\n";
     }
 
     if (defined($version) && !defined eval { $module->VERSION($version) }) {
@@ -126,6 +131,22 @@ sub this_perl {
         $this_perl .= $suffix;
     }
     return $this_perl;
+}
+
+sub report_version {
+    foreach my $module (@_) {
+        my $text = 'can not be loaded';
+        if (eval "require $module") {
+            my $version = eval { $module->VERSION };
+            if (defined $version) {
+                $text = "version is $version";
+            }
+            else {
+                $text = 'has no version';
+            }
+        }
+        print "# module $module $text\n";
+    }
 }
 
 1;

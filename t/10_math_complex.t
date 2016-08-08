@@ -1,8 +1,8 @@
-# Copyright (c) 2007-2009 Martin Becker.  All rights reserved.
+# Copyright (c) 2007-2016 Martin Becker.  All rights reserved.
 # This package is free software; you can redistribute it and/or modify it
 # under the same terms as Perl itself.
 #
-# $Id: 10_math_complex.t 36 2009-06-08 11:51:03Z demetri $
+# $Id: 10_math_complex.t 129 2016-08-08 17:27:26Z demetri $
 
 # Checking coefficient space compatibility with Math::Complex.
 
@@ -14,8 +14,12 @@
 use strict;
 use warnings;
 use Test;
-BEGIN { plan tests => 2 };
-use Math::Complex;
+use lib 't/lib';
+use Test::MyUtils;
+BEGIN {
+    use_or_bail('Math::Complex');
+    plan tests => 2;
+}
 use Math::Polynomial 1.000;
 ok(1);  # 1
 
