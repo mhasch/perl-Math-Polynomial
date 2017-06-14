@@ -13,7 +13,7 @@ use strict;
 use warnings;
 use Test;
 use lib 't/lib';
-use Test::MyUtils qw(:default :comp);
+use Test::MyUtils qw(:comp :DEFAULT);
 BEGIN {
     use_or_bail('Math::Complex');
     plan tests => 2;

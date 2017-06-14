@@ -16,14 +16,13 @@ use warnings;
 use Config;
 use base 'Exporter';
 
-our $VERSION   = '0.008';
+our $VERSION   = '0.009';
 our @EXPORT    = qw(use_or_bail maintainer_only);
 our @EXPORT_OK = qw(
     slurp_or_bail this_perl report_version
     init_comp_check comp_ok
 );
 our %EXPORT_TAGS = (
-    default => \@EXPORT,
     comp    => [qw(init_comp_check comp_ok)],
 );
 
@@ -33,16 +32,13 @@ our $MAX_FILESIZE = 1024 * 1024;
 my $comp_failure  = 'no good reason';
 
 sub _guess_distname {
-    my $distname = undef;
+    my $distname = 'This-Distribution';
     if (open my $rh, '<', 'README') {
         my $headline = <$rh>;
         if (defined $headline && $headline =~ /^\s*(\w+(?:[^\w\s]+\w+)*)\s/) {
             $distname = $1;
         }
         close $rh;
-    }
-    if (!defined $distname) {
-        $distname = 'This-Distribution';
     }
     return $distname;
 }

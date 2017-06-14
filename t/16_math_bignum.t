@@ -13,7 +13,7 @@ use strict;
 use warnings;
 use Test;
 use lib 't/lib';
-use Test::MyUtils qw(report_version use_or_bail :comp);
+use Test::MyUtils qw(:comp report_version use_or_bail);
 BEGIN {
     use_or_bail('Math::BigNum');
     plan tests => 8;

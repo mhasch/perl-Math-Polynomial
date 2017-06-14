@@ -93,7 +93,7 @@ undef $/;
 
 maintainer_only();
 
-plan 37;
+plan 38;
 
 my $MAKEFILE_PL            = 'Makefile.PL';
 my $README                 = 'README';
@@ -305,6 +305,7 @@ my @lacking_revision_id = ();
 my @lacking_author_pod  = ();
 my @bogus_author_pod    = ();
 my @stale_copyright     = ();
+my @mtime_copyright     = ();
 my @uncommited_files    = ();
 my @all_distfiles       = ();
 my @bad_package_versions= ();
@@ -439,6 +440,16 @@ if ($manifest_open) {
                         }
                     }
                 }
+                else {
+                    my $mtime = (stat FILE)[9];
+                    my $myear = (localtime $mtime)[5] + 1900;
+                    if (
+                        defined($copyright_year) &&
+                        $copyright_year ne $myear
+                    ) {
+                        push @mtime_copyright, $file;
+                    }
+                }
                 if ($has_pod) {
                     if (@authors) {
                         grep { /$pattern{'authormail_code'}/o } @authors or
@@ -496,6 +507,10 @@ if ($manifest_open) {
         print "# copyright year != checkin year: $file\n";
     }
     test !@stale_copyright, 'copyright years match checkin dates';
+    foreach my $file (@mtime_copyright) {
+        print "# copyright year != year of last file modification: $file\n";
+    }
+    test !@mtime_copyright, 'copyright years match file modification times';
     if ($having_revision_id) {
         foreach my $file (@lacking_revision_id) {
             print "# file lacking revision ID: $file\n";

@@ -17,7 +17,7 @@ use base qw(Math::Polynomial Exporter);
 our @EXPORT_OK = qw( X C );
 our %EXPORT_TAGS = ( legacy => [] );
 
-our $VERSION = '1.012';
+our $VERSION = '1.013';
 
 my $deprecated  = 1;
 my $x_singleton = Math::Polynomial::Generic->new(0, 1);
@@ -87,7 +87,7 @@ Math::Polynomial::Generic - syntactical sugar coating Math::Polynomial
 
 =head1 VERSION
 
-This documentation refers to version 1.012 of Math::Polynomial::Generic.
+This documentation refers to version 1.013 of Math::Polynomial::Generic.
 
 =head1 DEPRECATION NOTICE
 

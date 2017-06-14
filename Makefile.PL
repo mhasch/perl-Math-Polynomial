@@ -35,11 +35,11 @@ WriteMakefile(
             provides => {
                 'Math::Polynomial' => {
                     file    => 'lib/Math/Polynomial.pm',
-                    version => '1.012',
+                    version => '1.013',
                 },
                 'Math::Polynomial::Generic' => {
                     file    => 'lib/Math/Polynomial/Generic.pm',
-                    version => '1.012',
+                    version => '1.013',
                 },
             },
         },

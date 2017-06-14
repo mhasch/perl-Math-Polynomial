@@ -42,7 +42,7 @@ use constant NFIELDS  => 4;
 
 # ----- static data -----
 
-our $VERSION      = '1.012';
+our $VERSION      = '1.013';
 our $max_degree   = 10_000;    # limit for power operator
 
 # default values for as_string options
@@ -912,7 +912,7 @@ Math::Polynomial - Perl class for polynomials in one variable
 
 =head1 VERSION
 
-This documentation refers to version 1.012 of Math::Polynomial.
+This documentation refers to version 1.013 of Math::Polynomial.
 
 =head1 SYNOPSIS
 
@@ -2328,7 +2328,7 @@ Math::BigInt (usually bundled with perl)
 
 =item *
 
-Math::BigNum
+Math::BigNum (available on CPAN)
 
 =item *
 
@@ -2417,13 +2417,13 @@ the Perl Data Language.
 
 =item *
 
-Math::GMPz -
-an interface to the GMP arbitrary precision integer math library.
+Math::GMPz, Math::GMPq, Math::GMPf -
+interfaces to the GMP arbitrary precision integer math library.
 
 =item *
 
 Math::BigInt, Math::BigFloat, and Math::BigRat -
-arbitrary precision libraries.
+arbitrary precision math libraries.
 
 =item *
 
